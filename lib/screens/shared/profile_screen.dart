@@ -1,75 +1,172 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/app_colors.dart';
 import '../../core/app_constants.dart';
 import '../../widgets/shared_widgets.dart';
+import '../../models/student.dart';
+import '../../services/auth_service.dart';
+import '../../services/photo_upload_service.dart';
 import '../../services/mock_data_service.dart';
 
-/// Student Profile Screen – shows student and parent information.
+/// Profile Screen – shows information based on the current user role.
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final student = MockDataService.demoStudent;
-    final parent = MockDataService.demoParent;
+    final authService = Provider.of<AuthService>(context);
+    final currentUser = authService.currentUser;
 
-    return Scaffold(
-      appBar: const GradientAppBar(title: 'Student Profile', showBackButton: true),
-      backgroundColor: AppColors.background,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // Student photo and name card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(AppConstants.radiusXl),
-              ),
-              child: Column(children: [
-                CircleAvatar(
-                  radius: 42,
-                  backgroundColor: AppColors.accent.withValues(alpha: 0.2),
-                  child: Text(student.name[0], style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w700, color: AppColors.accent)),
+    if (currentUser == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    // Role-based logic for profile fetching
+    return StreamBuilder<QuerySnapshot>(
+      stream: (currentUser.role == 'parent')
+          ? FirebaseFirestore.instance
+              .collection('students')
+              .where('grNo', isEqualTo: currentUser.email.split('@')[0])
+              .snapshots()
+          : null,
+      builder: (context, snapshot) {
+        // Fallback to Mock Data if no user-specific record is found (e.g. during seeding/demo)
+        Student student = MockDataService.demoStudent;
+        if (currentUser.role == 'parent' && snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+          student = Student.fromMap(
+            snapshot.data!.docs.first.data() as Map<String, dynamic>,
+            snapshot.data!.docs.first.id,
+          );
+        }
+
+        return Scaffold(
+          appBar: const GradientAppBar(title: 'Profile', showBackButton: true),
+          backgroundColor: AppColors.background,
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                // ── Student Header ──
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(AppConstants.radiusXl),
+                  ),
+                  child: Column(children: [
+                    Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        CircleAvatar(
+                          radius: 42,
+                          backgroundColor: AppColors.accent.withValues(alpha: 0.2),
+                          backgroundImage: student.photoUrl != null ? NetworkImage(student.photoUrl!) : null,
+                          child: student.photoUrl == null 
+                              ? Text(student.name[0], style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w700, color: AppColors.accent)) 
+                              : null,
+                        ),
+                        Container(
+                          decoration: const BoxDecoration(color: AppColors.accent, shape: BoxShape.circle),
+                          child: IconButton(
+                            icon: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
+                            onPressed: () async {
+                              final photoService = Provider.of<PhotoUploadService>(context, listen: false);
+                              final url = await photoService.pickAndUploadPhoto(
+                                collection: 'students',
+                                documentId: snapshot.hasData ? snapshot.data!.docs.first.id : 'demo-student',
+                                folder: 'student_photos',
+                              );
+                              if (url != null && context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Student photo updated!')));
+                              }
+                            },
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                            padding: EdgeInsets.zero,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(student.name, style: const TextStyle(color: AppColors.textOnDark, fontSize: 22, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 4),
+                    Text('GR No: ${student.grNo}', style: const TextStyle(color: AppColors.accent, fontSize: 16, fontWeight: FontWeight.w800)),
+                  ]),
                 ),
+                const SizedBox(height: 16),
+
+                // ── Student Information ──
+                _infoCard('Student Details', [
+                  _infoRow(Icons.badge, 'General Register No.', student.grNo),
+                  _infoRow(Icons.class_, 'Class & Division', student.fullClass),
+                  _infoRow(Icons.email, 'School Email', student.email),
+                ]),
                 const SizedBox(height: 12),
-                Text(student.name, style: const TextStyle(color: AppColors.textOnDark, fontSize: 22, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 4),
-                Text('Class ${student.fullClass}', style: const TextStyle(color: AppColors.accent, fontSize: 14, fontWeight: FontWeight.w500)),
-              ]),
+
+                // ── Parent Information ──
+                if (student.parentDetails != null)
+                  _infoCard('Parent Details', [
+                    const SizedBox(height: 8),
+                    Center(
+                      child: Stack(
+                        alignment: Alignment.bottomRight,
+                        children: [
+                          CircleAvatar(
+                            radius: 36,
+                            backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                            backgroundImage: currentUser.photoUrl != null ? NetworkImage(currentUser.photoUrl!) : null,
+                            child: currentUser.photoUrl == null 
+                                ? Text(student.parentDetails!['name']?[0] ?? 'P', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.primary)) 
+                                : null,
+                          ),
+                          Container(
+                            decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                            child: IconButton(
+                              icon: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                              onPressed: () async {
+                                final photoService = Provider.of<PhotoUploadService>(context, listen: false);
+                                final url = await photoService.pickAndUploadPhoto(
+                                  collection: 'users',
+                                  documentId: currentUser.uid,
+                                  folder: 'parent_photos',
+                                );
+                                if (url != null && context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Parent photo updated!')));
+                                }
+                              },
+                              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                              padding: EdgeInsets.zero,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _infoRow(Icons.person, 'Parent Name', student.parentDetails!['name'] ?? 'N/A'),
+                    _infoRow(Icons.phone, 'Contact Number', student.parentDetails!['phone'] ?? 'N/A'),
+                    // Note: Parent Email is explicitly hidden per requirement
+                  ]),
+                
+                const SizedBox(height: 16),
+                
+                // Virtual Gate Pass button for parents
+                if (currentUser.role == 'parent')
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton.icon(
+                      onPressed: () => Navigator.pushNamed(context, '/parent-id-card'),
+                      icon: const Icon(Icons.credit_card),
+                      label: const Text('View Virtual Gate Pass'),
+                    ),
+                  ),
+                const SizedBox(height: 24),
+              ],
             ),
-            const SizedBox(height: 16),
-            // Student details
-            _infoCard('Student Information', [
-              _infoRow(Icons.badge, 'Roll Number', student.rollNumber),
-              _infoRow(Icons.class_, 'Class & Section', student.fullClass),
-              _infoRow(Icons.email, 'Email', student.email),
-              _infoRow(Icons.school, 'Academic Year', AppConstants.academicYear),
-            ]),
-            const SizedBox(height: 12),
-            // Parent details
-            _infoCard('Parent Information', [
-              _infoRow(Icons.person, 'Parent Name', parent.name),
-              _infoRow(Icons.phone, 'Contact', parent.phone),
-              _infoRow(Icons.email, 'Email', parent.email),
-              _infoRow(Icons.badge, 'Parent ID', parent.parentId),
-            ]),
-            const SizedBox(height: 16),
-            // Virtual ID Card button
-            SizedBox(
-              width: double.infinity, height: 52,
-              child: ElevatedButton.icon(
-                onPressed: () => Navigator.pushNamed(context, '/parent-id-card'),
-                icon: const Icon(Icons.credit_card),
-                label: const Text('View Virtual Parent ID Card'),
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -80,7 +177,13 @@ class ProfileScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppConstants.radiusLg),
-        boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          )
+        ],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.primary)),

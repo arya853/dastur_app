@@ -35,7 +35,7 @@ class TeacherDashboardScreen extends StatelessWidget {
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                   Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text('Good Morning,', style: TextStyle(color: AppColors.textOnDark.withValues(alpha: 0.7), fontSize: 14)),
-                    Text(teacher.name, style: const TextStyle(color: AppColors.textOnDark, fontSize: 20, fontWeight: FontWeight.w700)),
+                    Text(authService.currentUser?.displayName ?? 'Teacher', style: const TextStyle(color: AppColors.textOnDark, fontSize: 20, fontWeight: FontWeight.w700)),
                   ]),
                   Row(children: [
                     const RoleBadge(role: 'teacher'),

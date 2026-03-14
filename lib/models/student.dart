@@ -3,21 +3,23 @@ class Student {
   final String id;
   final String name;
   final String className; // e.g., 'VIII'
-  final String section;   // e.g., 'A'
+  final String division;  // A, B, C, D
   final String rollNumber;
   final String email;
   final String? photoUrl;
-  final String parentId;  // linked parent's ID
+  final String grNo;      // General Register Number (Unique ID)
+  final Map<String, dynamic>? parentDetails;
 
   Student({
     required this.id,
     required this.name,
     required this.className,
-    required this.section,
+    required this.division,
     required this.rollNumber,
     required this.email,
     this.photoUrl,
-    required this.parentId,
+    required this.grNo,
+    this.parentDetails,
   });
 
   factory Student.fromMap(Map<String, dynamic> map, String id) {
@@ -25,11 +27,12 @@ class Student {
       id: id,
       name: map['name'] ?? '',
       className: map['className'] ?? '',
-      section: map['section'] ?? '',
+      division: map['division'] ?? map['section'] ?? '', // Handle migration from 'section'
       rollNumber: map['rollNumber'] ?? '',
       email: map['email'] ?? '',
       photoUrl: map['photoUrl'],
-      parentId: map['parentId'] ?? '',
+      grNo: map['grNo'] ?? '',
+      parentDetails: map['parentDetails'],
     );
   }
 
@@ -37,14 +40,15 @@ class Student {
     return {
       'name': name,
       'className': className,
-      'section': section,
+      'division': division,
       'rollNumber': rollNumber,
       'email': email,
       'photoUrl': photoUrl,
-      'parentId': parentId,
+      'grNo': grNo,
+      'parentDetails': parentDetails,
     };
   }
 
-  /// Full class identifier like "VIII - A"
-  String get fullClass => '$className - $section';
+  /// Full class identifier like "5 - A"
+  String get fullClass => '$className - $division';
 }

@@ -8,7 +8,7 @@ class AppConstants {
   // ─── SCHOOL BRANDING ──────────────────────────────────────────────
   static const String schoolName = 'Sardar Dastur Hormazdiar High School';
   static const String schoolShortName = 'Dastur School';
-  static const String schoolTagline = 'Let Us Celebrate Learning!';
+  static const String schoolTagline = 'Good Thoughts, Good Words, Good Deeds';
   static const String schoolCity = 'Pune';
   static const String schoolWebsite = 'https://coed.dasturschools.in/';
   static const String schoolLogoPath = 'assets/images/school_logo.png';

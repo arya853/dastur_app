@@ -3,8 +3,7 @@
 class Parent {
   final String id;
   final String name;
-  final String linkedStudentId;
-  final String parentId;   // Unique school-issued parent ID
+  final String linkedStudentGrNo;
   final String? photoUrl;
   final String qrCodeId;   // Unique string for QR verification
   final String phone;
@@ -13,8 +12,7 @@ class Parent {
   Parent({
     required this.id,
     required this.name,
-    required this.linkedStudentId,
-    required this.parentId,
+    required this.linkedStudentGrNo,
     this.photoUrl,
     required this.qrCodeId,
     required this.phone,
@@ -25,8 +23,7 @@ class Parent {
     return Parent(
       id: id,
       name: map['name'] ?? '',
-      linkedStudentId: map['linkedStudentId'] ?? '',
-      parentId: map['parentId'] ?? '',
+      linkedStudentGrNo: map['linkedStudentGrNo'] ?? '',
       photoUrl: map['photoUrl'],
       qrCodeId: map['qrCodeId'] ?? '',
       phone: map['phone'] ?? '',
@@ -37,8 +34,7 @@ class Parent {
   Map<String, dynamic> toMap() {
     return {
       'name': name,
-      'linkedStudentId': linkedStudentId,
-      'parentId': parentId,
+      'linkedStudentGrNo': linkedStudentGrNo,
       'photoUrl': photoUrl,
       'qrCodeId': qrCodeId,
       'phone': phone,

@@ -1,26 +1,67 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
 import '../../core/app_constants.dart';
 import '../../widgets/shared_widgets.dart';
 import '../../services/mock_data_service.dart';
+import '../../services/notification_service.dart';
+import 'package:flutter/material.dart';
 
 /// Admin Manage Students Screen.
-class AdminStudentsScreen extends StatelessWidget {
+class AdminStudentsScreen extends StatefulWidget {
   const AdminStudentsScreen({super.key});
+
+  @override
+  State<AdminStudentsScreen> createState() => _AdminStudentsScreenState();
+}
+
+class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
+    final students = MockDataService.allStudents.where((s) => 
+      s.grNo.contains(_searchQuery) || 
+      s.name.toLowerCase().contains(_searchQuery.toLowerCase())
+    ).toList();
+
     return Scaffold(
       appBar: const GradientAppBar(title: 'Manage Students', showBackButton: true),
       backgroundColor: AppColors.background,
       floatingActionButton: FloatingActionButton(onPressed: () => _showFormDialog(context, 'Add Student'), child: const Icon(Icons.add)),
-      body: ListView.builder(padding: const EdgeInsets.all(16), itemCount: MockDataService.allStudents.length, itemBuilder: (context, i) {
-        final s = MockDataService.allStudents[i];
-        return _managementCard(
-          avatar: s.name[0], title: s.name, subtitle: 'Class ${s.fullClass} • Roll ${s.rollNumber}',
-          onEdit: () => _showFormDialog(context, 'Edit Student'),
-          onDelete: () => _confirmDelete(context, s.name),
-        );
-      }),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search by Name or GR Number...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                filled: true,
+                fillColor: AppColors.surface,
+              ),
+              onChanged: (val) => setState(() => _searchQuery = val),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16), 
+              itemCount: students.length, 
+              itemBuilder: (context, i) {
+                final s = students[i];
+                return _managementCard(
+                  avatar: s.name[0], title: s.name, subtitle: 'GR: ${s.grNo} • Class ${s.fullClass}',
+                  onEdit: () => _showFormDialog(context, 'Edit Student'),
+                  onDelete: () => _confirmDelete(context, s.name),
+                );
+              }
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -58,7 +99,7 @@ class AdminParentsScreen extends StatelessWidget {
       body: ListView(padding: const EdgeInsets.all(16), children: [
         _managementCard(
           avatar: MockDataService.demoParent.name[0], title: MockDataService.demoParent.name,
-          subtitle: 'Child: ${MockDataService.demoStudent.name} • ID: ${MockDataService.demoParent.parentId}',
+          subtitle: 'Child: ${MockDataService.demoStudent.name}',
           onEdit: () => _showFormDialog(context, 'Edit Parent'), onDelete: () => _confirmDelete(context, MockDataService.demoParent.name),
         ),
       ]),
@@ -74,7 +115,10 @@ class AdminAnnouncementsScreen extends StatelessWidget {
     return Scaffold(
       appBar: const GradientAppBar(title: 'Manage Announcements', showBackButton: true),
       backgroundColor: AppColors.background,
-      floatingActionButton: FloatingActionButton(onPressed: () => _showFormDialog(context, 'Create Announcement'), child: const Icon(Icons.add)),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAnnouncementDialog(context),
+        child: const Icon(Icons.add),
+      ),
       body: ListView.builder(padding: const EdgeInsets.all(16), itemCount: MockDataService.announcements.length, itemBuilder: (context, i) {
         final a = MockDataService.announcements[i];
         return Container(margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(14),
@@ -283,6 +327,46 @@ Widget _managementCard({required String avatar, required String title, required 
       IconButton(icon: const Icon(Icons.edit, size: 18, color: AppColors.accent), onPressed: onEdit),
       IconButton(icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error), onPressed: onDelete),
     ]),
+  );
+}
+
+void _showAnnouncementDialog(BuildContext context) {
+  final titleController = TextEditingController();
+  final bodyController = TextEditingController();
+
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Create School Announcement'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(controller: titleController, decoration: const InputDecoration(labelText: 'Title')),
+          TextField(controller: bodyController, decoration: const InputDecoration(labelText: 'Message'), maxLines: 3),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        ElevatedButton(
+          onPressed: () async {
+            final notificationService = Provider.of<NotificationService>(context, listen: false);
+            
+            // Trigger school-wide notification
+            await notificationService.sendNotification(
+              topic: 'school_announcements',
+              title: titleController.text.trim(),
+              body: bodyController.text.trim(),
+            );
+
+            if (context.mounted) {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Announcement created & notifications sent!')));
+            }
+          },
+          child: const Text('Create & Notify'),
+        ),
+      ],
+    ),
   );
 }
 

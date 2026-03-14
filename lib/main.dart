@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 // Core
 import 'core/app_theme.dart';
@@ -8,6 +10,8 @@ import 'core/app_constants.dart';
 
 // Services
 import 'services/auth_service.dart';
+import 'services/photo_upload_service.dart';
+import 'services/notification_service.dart';
 
 // Screens - Auth
 import 'screens/auth/login_screen.dart';
@@ -41,8 +45,39 @@ import 'screens/shared/parent_id_card_screen.dart';
 ///
 /// Entry point for the cross-platform Flutter app.
 /// Supports 3 roles: Admin, Teacher, Parent.
-void main() {
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  // Handle background message
+  debugPrint("Handling a background message: \${message.messageId}");
+}
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  await Firebase.initializeApp();
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  // Request Notification Permissions
+  FirebaseMessaging messaging = FirebaseMessaging.instance;
+  await messaging.requestPermission(
+    alert: true,
+    announcement: false,
+    badge: true,
+    carPlay: false,
+    criticalAlert: false,
+    provisional: false,
+    sound: true,
+  );
+
+  // Handle Foreground Messages
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    debugPrint('Got a message whilst in the foreground!');
+    if (message.notification != null) {
+      debugPrint('Message also contained a notification: \${message.notification}');
+    }
+  });
 
   // Lock to portrait mode for consistent UI
   SystemChrome.setPreferredOrientations([
@@ -64,9 +99,12 @@ class DasturParentPortalApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      // Provide AuthService to the entire app widget tree
-      create: (_) => AuthService(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthService()),
+        Provider(create: (_) => PhotoUploadService()),
+        Provider(create: (_) => NotificationService()),
+      ],
       child: MaterialApp(
         title: AppConstants.schoolShortName,
         debugShowCheckedModeBanner: false,

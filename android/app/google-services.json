@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "919984420541",
+    "project_id": "dasturapp",
+    "storage_bucket": "dasturapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:919984420541:android:3e2ee395b518e3019269d4",
+        "android_client_info": {
+          "package_name": "com.dasturschool.dastur_parent_portal"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAZk4l9S6qxBO-JkvyL2_0cHijfX7ooO4c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

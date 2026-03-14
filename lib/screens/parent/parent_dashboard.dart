@@ -7,12 +7,38 @@ import '../../services/auth_service.dart';
 import '../../services/mock_data_service.dart';
 import 'package:provider/provider.dart';
 
+import '../../services/notification_service.dart';
+
 /// Parent Dashboard Screen
 ///
 /// Shows a grid of 12 feature tiles and a welcome header.
 /// This is the main landing page after a parent logs in.
-class ParentDashboardScreen extends StatelessWidget {
+class ParentDashboardScreen extends StatefulWidget {
   const ParentDashboardScreen({super.key});
+
+  @override
+  State<ParentDashboardScreen> createState() => _ParentDashboardScreenState();
+}
+
+class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Auto-subscribe to student's class topic for notifications
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _subscribeToStudentTopic();
+    });
+  }
+
+  void _subscribeToStudentTopic() {
+    final student = MockDataService.demoStudent;
+    final notificationService = Provider.of<NotificationService>(context, listen: false);
+    
+    // Topic format: class_8_div_A
+    final topic = 'class_${student.grade}_div_${student.division}'.toLowerCase();
+    notificationService.subscribeToTopic(topic);
+    notificationService.subscribeToTopic('school_announcements');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,20 +74,20 @@ class ParentDashboardScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Welcome,',
-                                style: TextStyle(
-                                  color:
-                                      AppColors.textOnDark.withValues(alpha: 0.7),
-                                  fontSize: 14,
-                                ),
-                              ),
-                              Text(
-                                authService.currentUser?.displayName ??
-                                    'Parent',
+                                'Parent: ${authService.currentUser?.displayName ?? "User"}',
                                 style: const TextStyle(
                                   color: AppColors.textOnDark,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Student: ${student.name}',
+                                style: TextStyle(
+                                  color: AppColors.accent.withValues(alpha: 0.9),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ],
@@ -195,12 +221,6 @@ class ParentDashboardScreen extends StatelessWidget {
                   iconColor: AppColors.tileIconColors[1],
                   onTap: () =>
                       Navigator.pushNamed(context, '/announcements'),
-                ),
-                DashboardTile(
-                  icon: Icons.groups,
-                  label: 'PTM',
-                  iconColor: AppColors.tileIconColors[2],
-                  onTap: () => Navigator.pushNamed(context, '/ptm'),
                 ),
                 DashboardTile(
                   icon: Icons.menu_book,

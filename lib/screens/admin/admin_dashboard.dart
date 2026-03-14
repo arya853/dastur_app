@@ -6,6 +6,7 @@ import '../../widgets/dashboard_tile.dart';
 import '../../widgets/shared_widgets.dart';
 import '../../services/auth_service.dart';
 import '../../services/mock_data_service.dart';
+import '../../services/data_seeder_service.dart';
 
 /// Admin Dashboard Screen
 ///
@@ -85,11 +86,37 @@ class AdminDashboardScreen extends StatelessWidget {
                   onTap: () => Navigator.pushNamed(context, '/admin-reports')),
                 DashboardTile(icon: Icons.auto_stories, label: 'Manage\nE-Books', iconColor: AppColors.tileIconColors[4],
                   onTap: () => Navigator.pushNamed(context, '/ebooks')),
-                DashboardTile(icon: Icons.menu_book, label: 'Manage\nSyllabus', iconColor: AppColors.tileIconColors[3],
-                  onTap: () => Navigator.pushNamed(context, '/syllabus')),
                 DashboardTile(icon: Icons.settings, label: 'Settings', iconColor: AppColors.tileIconColors[11],
                   onTap: () => Navigator.pushNamed(context, '/admin-settings')),
               ],
+            ),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Starting database seed...')));
+                  try {
+                    await DataSeederService().seedDatabase();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mock data uploaded to Firebase successfully!')));
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to seed database: \$e')));
+                    }
+                  }
+                },
+                icon: const Icon(Icons.cloud_upload),
+                label: const Text('Seed Firebase Database (Admin Only)'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+              ),
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 32)),

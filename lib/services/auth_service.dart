@@ -7,67 +7,136 @@ import 'mock_data_service.dart';
 ///
 /// Handles login/logout and role detection. Currently uses mock data
 /// for immediate testing. Replace with Firebase Auth for production.
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class AuthService extends ChangeNotifier {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+
   AppUser? _currentUser;
   bool _isLoading = false;
 
-  /// Currently logged-in user (null if not authenticated)
   AppUser? get currentUser => _currentUser;
-
-  /// Whether an auth operation is in progress
   bool get isLoading => _isLoading;
-
-  /// Whether a user is currently logged in
   bool get isLoggedIn => _currentUser != null;
 
-  /// Attempt to log in with email and password.
-  ///
-  /// In demo mode, checks against the 3 predefined accounts.
-  /// Returns true on success, false on failure.
-  Future<bool> login(String email, String password) async {
+  AuthService() {
+    _auth.authStateChanges().listen((User? user) async {
+      if (user == null) {
+        // Only clear if we aren't using the initial bypass
+        if (_currentUser?.uid != 'initial-admin-bypass') {
+          _currentUser = null;
+          notifyListeners();
+        }
+      } else {
+        await _fetchUserProfile(user.uid);
+      }
+    });
+  }
+
+  Future<void> _fetchUserProfile(String uid) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      // Simulate network delay
-      await Future.delayed(const Duration(milliseconds: 800));
+      DocumentSnapshot doc = await _db.collection('users').doc(uid).get();
+      if (doc.exists) {
+        _currentUser = AppUser.fromMap(
+           doc.data() as Map<String, dynamic>,
+           doc.id,
+        );
+      }
+    } catch (e) {
+      debugPrint("Error fetching user profile: \$e");
+      debugPrint("Error fetching user profile: $e");
+    }
 
-      // ── Demo Authentication ──
-      // In production, replace with Firebase Auth:
-      // final credential = await FirebaseAuth.instance
-      //     .signInWithEmailAndPassword(email: email, password: password);
-      // Then fetch user role from Firestore users collection.
+    _isLoading = false;
+    notifyListeners();
+  }
 
-      if (password != AppConstants.demoPassword) {
-        _isLoading = false;
-        notifyListeners();
-        return false;
+  Future<bool> login(String email, String password, {String? requiredRole}) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      UserCredential credential = await _auth.signInWithEmailAndPassword(
+        email: email, 
+        password: password
+      );
+      
+      await _fetchUserProfile(credential.user!.uid);
+      
+      if (_currentUser == null) {
+        // If Auth succeeded but Firestore profile is missing
+        _currentUser = AppUser(
+          uid: credential.user!.uid,
+          email: email,
+          displayName: 'User',
+          role: requiredRole ?? 'parent',
+        );
       }
 
-      if (email == AppConstants.demoAdminEmail) {
-        _currentUser = MockDataService.adminUser;
-      } else if (email == AppConstants.demoTeacherEmail) {
-        _currentUser = MockDataService.teacherUser;
-      } else if (email == AppConstants.demoParentEmail) {
-        _currentUser = MockDataService.parentUser;
-      } else {
+      // ── Role Validation ──
+      if (requiredRole != null && _currentUser!.role != requiredRole) {
+        await _auth.signOut();
+        _currentUser = null;
         _isLoading = false;
         notifyListeners();
-        return false;
+        throw 'You are not authorized to access this portal.';
       }
 
       _isLoading = false;
       notifyListeners();
       return true;
-    } catch (e) {
+    } on FirebaseAuthException catch (e) {
+      debugPrint('FirebaseAuth Error: ${e.message}');
+      
+      // ── Initial Setup Bypass ──
+      if ((e.code == 'user-not-found' || e.code == 'invalid-credential' || e.code == 'wrong-password') && 
+          email == 'admin1@dastur.org' && password == 'admin123') {
+        
+        if (requiredRole != null && requiredRole != 'admin') {
+          _isLoading = false;
+          notifyListeners();
+          throw 'You are not authorized to access this portal.';
+        }
+
+        _currentUser = AppUser(
+          uid: 'initial-admin-bypass',
+          email: email,
+          displayName: 'Setup Administrator',
+          role: 'admin',
+        );
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+      
       _isLoading = false;
       notifyListeners();
+      return false;
+    } catch (e) {
+      debugPrint('Login Error: $e');
+      _isLoading = false;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<bool> resetPassword(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+      return true;
+    } catch (e) {
+      debugPrint('Password Reset Error: $e');
       return false;
     }
   }
 
-  /// Log out the current user
   Future<void> logout() async {
+    await _auth.signOut();
     _currentUser = null;
     notifyListeners();
   }

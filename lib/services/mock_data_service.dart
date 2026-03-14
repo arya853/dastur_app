@@ -45,43 +45,109 @@ class MockDataService {
     id: 'student-001',
     name: 'Aryan Mehta',
     className: 'VIII',
-    section: 'A',
+    division: 'A',
     rollNumber: '24',
     email: 'aryan.mehta@dasturschool.in',
-    parentId: 'parent-001',
+    grNo: '2024001',
   );
 
-  static final List<Student> allStudents = [
-    demoStudent,
-    Student(id: 'student-002', name: 'Priya Deshmukh', className: 'VIII', section: 'A', rollNumber: '12', email: 'priya.d@dasturschool.in', parentId: 'parent-002'),
-    Student(id: 'student-003', name: 'Rishi Kapoor', className: 'VIII', section: 'A', rollNumber: '15', email: 'rishi.k@dasturschool.in', parentId: 'parent-003'),
-    Student(id: 'student-004', name: 'Ananya Singh', className: 'VIII', section: 'B', rollNumber: '03', email: 'ananya.s@dasturschool.in', parentId: 'parent-004'),
-    Student(id: 'student-005', name: 'Karan Joshi', className: 'IX', section: 'A', rollNumber: '18', email: 'karan.j@dasturschool.in', parentId: 'parent-005'),
-    Student(id: 'student-006', name: 'Sneha Patil', className: 'IX', section: 'A', rollNumber: '22', email: 'sneha.p@dasturschool.in', parentId: 'parent-006'),
-    Student(id: 'student-007', name: 'Aditya Kulkarni', className: 'VII', section: 'A', rollNumber: '08', email: 'aditya.k@dasturschool.in', parentId: 'parent-007'),
-    Student(id: 'student-008', name: 'Meera Nair', className: 'X', section: 'A', rollNumber: '31', email: 'meera.n@dasturschool.in', parentId: 'parent-008'),
-  ];
+  static final List<Student> _generatedStudents = _generateStudentsList();
+  static final List<Parent> _generatedParents = _generateParentsList(_generatedStudents);
+
+  static List<Student> _generateStudentsList() {
+    final List<Student> students = [
+      demoStudent,
+      Student(id: 'student-002', name: 'Priya Deshmukh', className: '8', division: 'A', rollNumber: '12', email: 'priya.d@dastur.org', grNo: '2024002'),
+      Student(id: 'student-003', name: 'Rishi Kapoor', className: '8', division: 'A', rollNumber: '15', email: 'rishi.k@dastur.org', grNo: '2024003'),
+      Student(id: 'student-004', name: 'Ananya Singh', className: '8', division: 'B', rollNumber: '03', email: 'ananya.s@dastur.org', grNo: '2024004'),
+      Student(id: 'student-005', name: 'Karan Joshi', className: '9', division: 'A', rollNumber: '18', email: 'karan.j@dastur.org', grNo: '2024005'),
+      Student(id: 'student-006', name: 'Sneha Patil', className: '9', division: 'A', rollNumber: '22', email: 'sneha.p@dastur.org', grNo: '2024006'),
+      Student(id: 'student-007', name: 'Aditya Kulkarni', className: '7', division: 'A', rollNumber: '08', email: 'aditya.k@dastur.org', grNo: '2024007'),
+      Student(id: 'student-008', name: 'Meera Nair', className: '10', division: 'A', rollNumber: '31', email: 'meera.n@dastur.org', grNo: '2024008'),
+    ];
+
+    final firstNames = ['Aarav', 'Vihaan', 'Vivaan', 'Ananya', 'Diya', 'Advik', 'Kabir', 'Anika', 'Navya', 'Ojas', 'Rudra', 'Aryan', 'Mahika', 'Sara', 'Kavya', 'Riya', 'Ishaan', 'Dhruv', 'Rohan', 'Neha'];
+    final lastNames = ['Sharma', 'Verma', 'Patil', 'Desai', 'Joshi', 'Patel', 'Reddy', 'Chauhan', 'Singh', 'Gupta', 'Kumar', 'Shah', 'Nair', 'Menon', 'Iyer'];
+    final classes = ['5', '6', '7', '8', '9', '10'];
+    final divisions = ['A', 'B', 'C', 'D'];
+    
+    int count = 9; 
+    int nameIndex = 0;
+    
+    for (int i = 0; i < 92; i++) {
+      String first = firstNames[nameIndex % firstNames.length];
+      String last = lastNames[(nameIndex + i) % lastNames.length];
+      String cls = classes[i % classes.length];
+      String div = divisions[(i ~/ classes.length) % divisions.length];
+      String grNo = '2024${count.toString().padLeft(3, '0')}';
+      
+      students.add(Student(
+        id: 'student-${count.toString().padLeft(3, '0')}',
+        name: '$first $last',
+        className: cls,
+        division: div,
+        rollNumber: '${(i % 40) + 1}',
+        email: '${first.toLowerCase()}.${last.toLowerCase()}@dastur.org',
+        grNo: grNo,
+        parentDetails: {
+          'name': 'Mr. & Mrs. $last',
+          'phone': '+91 9${(876500000 + i).toString()}',
+          'email': '$grNo@dastur.org',
+        },
+      ));
+      
+      count++;
+      nameIndex++;
+    }
+    return students;
+  }
+
+  static List<Parent> _generateParentsList(List<Student> students) {
+    final List<Parent> parents = [demoParent];
+    for (int i = 1; i < students.length; i++) {
+      final student = students[i];
+      final lastName = student.name.split(' ').last;
+      
+      parents.add(Parent(
+        id: 'parent-${student.id.split('-').last}',
+        name: 'Mr. & Mrs. $lastName',
+        linkedStudentGrNo: student.grNo,
+        qrCodeId: 'DASTUR-QR-P-${student.id.split('-').last}-2024',
+        phone: student.parentDetails?['phone'] ?? '+91 9000000000',
+        email: '${student.grNo}@dastur.org',
+      ));
+    }
+    return parents;
+  }
+
+  static final List<Student> allStudents = _generatedStudents;
+  static final List<Parent> allParents = _generatedParents;
 
   // ─── PARENT ───────────────────────────────────────────────────────
   static final Parent demoParent = Parent(
     id: 'parent-001',
     name: 'Mr. Rohan Mehta',
-    linkedStudentId: 'student-001',
-    parentId: 'DSHH-P-2024-0024',
+    linkedStudentGrNo: '2024001',
     qrCodeId: 'DASTUR-QR-P001-2024',
     phone: '+91 98765 43210',
-    email: 'parent@dasturschool.in',
+    email: '2024001@dastur.org',
   );
 
   // ─── TEACHER ──────────────────────────────────────────────────────
   static final Teacher demoTeacher = Teacher(
     id: 'teacher-001',
     name: 'Mrs. Priya Sharma',
-    email: 'teacher@dasturschool.in',
+    email: 'teacher@dastur.org',
     phone: '+91 99887 76655',
-    assignedClasses: ['VIII-A', 'VIII-B', 'IX-A'],
+    assignedClasses: ['8-A', '8-B', '9-A'],
     subjects: ['Mathematics', 'Science'],
   );
+
+  static final List<AppUser> adminAccounts = [
+    adminUser,
+    AppUser(uid: 'admin-002', email: 'admin2@dastur.org', displayName: 'Admin 2', role: 'admin'),
+    AppUser(uid: 'admin-003', email: 'admin3@dastur.org', displayName: 'Admin 3', role: 'admin'),
+  ];
 
   static final List<Teacher> allTeachers = [
     demoTeacher,

@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
 import '../../core/app_constants.dart';
 import '../../widgets/shared_widgets.dart';
 import '../../services/mock_data_service.dart';
+import '../../services/notification_service.dart';
 
 /// Mark Attendance Screen – teacher selects class and marks each student.
 class MarkAttendanceScreen extends StatefulWidget {
@@ -18,14 +19,14 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
   @override
   void initState() {
     super.initState();
-    for (final s in MockDataService.allStudents.where((s) => '${s.className}-${s.section}' == _selectedClass)) {
+    for (final s in MockDataService.allStudents.where((s) => '${s.className}-${s.division}' == _selectedClass)) {
       _attendance[s.id] = 'present';
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final students = MockDataService.allStudents.where((s) => '${s.className}-${s.section}' == _selectedClass).toList();
+    final students = MockDataService.allStudents.where((s) => '${s.className}-${s.division}' == _selectedClass).toList();
 
     return Scaffold(
       appBar: const GradientAppBar(title: 'Mark Attendance', showBackButton: true),
@@ -38,7 +39,7 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
             MockDataService.demoTeacher.assignedClasses.map((c) {
               final selected = c == _selectedClass;
               return Padding(padding: const EdgeInsets.only(right: 8), child: GestureDetector(
-                onTap: () => setState(() { _selectedClass = c; _attendance.clear(); for (final s in MockDataService.allStudents.where((s) => '${s.className}-${s.section}' == c)) { _attendance[s.id] = 'present'; } }),
+                onTap: () => setState(() { _selectedClass = c; _attendance.clear(); for (final s in MockDataService.allStudents.where((s) => '${s.className}-${s.division}' == c)) { _attendance[s.id] = 'present'; } }),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(color: selected ? AppColors.accent : AppColors.surfaceElevated, borderRadius: BorderRadius.circular(20)),
@@ -84,7 +85,25 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
           padding: const EdgeInsets.all(16), color: AppColors.surface,
           child: SizedBox(width: double.infinity, height: 48,
             child: ElevatedButton(
-              onPressed: () { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Attendance submitted successfully!'))); Navigator.pop(context); },
+              onPressed: () async {
+                final notificationService = Provider.of<NotificationService>(context, listen: false);
+                
+                // Trigger notification to parents of this class
+                // Format topic: class_8_div_a
+                final parts = _selectedClass.split('-');
+                final topic = 'class_${parts[0]}_div_${parts[1]}'.toLowerCase();
+                
+                await notificationService.sendNotification(
+                  topic: topic,
+                  title: 'Attendance Updated',
+                  body: 'Attendance for Class $_selectedClass has been marked for today.',
+                );
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Attendance submitted & parents notified!')));
+                  Navigator.pop(context);
+                }
+              },
               child: const Text('Submit Attendance'),
             ),
           ),
@@ -144,10 +163,44 @@ class TeacherAnnouncementsScreen extends StatelessWidget {
   }
 
   void _showCreateDialog(BuildContext context) {
-    showDialog(context: context, builder: (_) => AlertDialog(
-      title: const Text('Create Announcement'),
-      content: const Text('In a production app, this opens a form to create a class-level announcement with title, body, and type selection.'),
-      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+    final titleController = TextEditingController();
+    final bodyController = TextEditingController();
+
+    showDialog(context: context, builder: (context) => AlertDialog(
+      title: const Text('Create Class Announcement'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(controller: titleController, decoration: const InputDecoration(labelText: 'Title')),
+          TextField(controller: bodyController, decoration: const InputDecoration(labelText: 'Message'), maxLines: 3),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        ElevatedButton(
+          onPressed: () async {
+            final notificationService = Provider.of<NotificationService>(context, listen: false);
+            
+            // Trigger class-specific notification
+            // For demo purposes, we use a fixed class from the demo teacher
+            final classNode = MockDataService.demoTeacher.assignedClasses.first;
+            final parts = classNode.split('-');
+            final topic = 'class_${parts[0]}_div_${parts[1]}'.toLowerCase();
+
+            await notificationService.sendNotification(
+              topic: topic,
+              title: titleController.text.trim(),
+              body: bodyController.text.trim(),
+            );
+
+            if (context.mounted) {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Class announcement created & parents notified!')));
+            }
+          },
+          child: const Text('Create & Notify'),
+        ),
+      ],
     ));
   }
 }
