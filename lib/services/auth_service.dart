@@ -24,8 +24,14 @@ class AuthService extends ChangeNotifier {
   AuthService() {
     _auth.authStateChanges().listen((User? user) async {
       if (user == null) {
-        // Only clear if we aren't using the initial bypass
-        if (_currentUser?.uid != 'initial-admin-bypass') {
+        // Don't clear if it's a mock user or the initial bypass
+        final uid = _currentUser?.uid ?? '';
+        bool isMock = uid == 'initial-admin-bypass' || 
+                     uid.startsWith('admin-') || 
+                     uid.startsWith('teacher-') || 
+                     uid.startsWith('parent-');
+        
+        if (!isMock) {
           _currentUser = null;
           notifyListeners();
         }
@@ -59,6 +65,29 @@ class AuthService extends ChangeNotifier {
   Future<bool> login(String email, String password, {String? requiredRole}) async {
     _isLoading = true;
     notifyListeners();
+
+    // ── Local Mock Login Bypass ──
+    // Allows immediate testing with the credentials mentioned in README
+    if (password == AppConstants.demoPassword) {
+      AppUser? mockUser;
+      if (email == AppConstants.demoAdminEmail) {
+        mockUser = MockDataService.adminUser;
+      } else if (email == AppConstants.demoTeacherEmail) {
+        mockUser = MockDataService.teacherUser;
+      } else if (email == AppConstants.demoParentEmail || email == '2024001@dastur.org') {
+        mockUser = MockDataService.parentUser;
+      }
+
+      if (mockUser != null) {
+        // Validate role if specified
+        if (requiredRole == null || mockUser.role == requiredRole) {
+          _currentUser = mockUser;
+          _isLoading = false;
+          notifyListeners();
+          return true;
+        }
+      }
+    }
 
     try {
       UserCredential credential = await _auth.signInWithEmailAndPassword(

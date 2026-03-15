@@ -1,0 +1,7 @@
+[warning] Unused import: '../../models/student.dart' (E:\projects\dastur_app\lib\screens\parent\parent_dashboard.dart:8:8)
+[warning] Dead code (E:\projects\dastur_app\lib\screens\shared\parent_id_card_screen.dart:65:43)
+[warning] The left operand can't be null, so the right operand is never executed (E:\projects\dastur_app\lib\screens\shared\parent_id_card_screen.dart:65:46)
+[warning] Unused import: '../../models/teacher.dart' (E:\projects\dastur_app\lib\screens\teacher\teacher_dashboard.dart:9:8)
+[warning] Unused import: '../core/app_constants.dart' (E:\projects\dastur_app\lib\services\auth_service.dart:3:8)
+[warning] Unused import: 'mock_data_service.dart' (E:\projects\dastur_app\lib\services\auth_service.dart:4:8)
+[info] The 'if' statement could be replaced by a null-aware assignment (E:\projects\dastur_app\lib\services\auth_service.dart:71:7)

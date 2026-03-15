@@ -51,4 +51,7 @@ class Student {
 
   /// Full class identifier like "5 - A"
   String get fullClass => '$className - $division';
+
+  /// Alias for className to match UI usage
+  String get grade => className;
 }

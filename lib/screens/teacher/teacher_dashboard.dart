@@ -6,6 +6,7 @@ import '../../widgets/dashboard_tile.dart';
 import '../../widgets/shared_widgets.dart';
 import '../../services/auth_service.dart';
 import '../../services/mock_data_service.dart';
+import '../../models/teacher.dart';
 
 /// Teacher Dashboard Screen
 ///
