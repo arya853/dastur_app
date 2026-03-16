@@ -341,66 +341,74 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
               final ann = announcements[index];
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(AppConstants.radiusMd),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.06),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
+                child: InkWell(
+                  onTap: () => Navigator.pushNamed(
+                    context, 
+                    '/announcement-detail', 
+                    arguments: ann,
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: _getAnnouncementColor(ann.type).withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.06),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
                         ),
-                        child: Icon(
-                          _getAnnouncementIcon(ann.type),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: _getAnnouncementColor(ann.type).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            _getAnnouncementIcon(ann.type),
+                            color: _getAnnouncementColor(ann.type),
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                ann.title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                  color: AppColors.textPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${ann.date.day}/${ann.date.month}/${ann.date.year}',
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        StatusChip(
+                          label: ann.type.toUpperCase(),
                           color: _getAnnouncementColor(ann.type),
-                          size: 18,
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              ann.title,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13,
-                                color: AppColors.textPrimary,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${ann.date.day}/${ann.date.month}/${ann.date.year}',
-                              style: const TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      StatusChip(
-                        label: ann.type.toUpperCase(),
-                        color: _getAnnouncementColor(ann.type),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               );

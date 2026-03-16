@@ -42,6 +42,8 @@ import 'screens/shared/timetable_screen.dart';
 import 'screens/shared/profile_screen.dart';
 import 'screens/shared/parent_id_card_screen.dart';
 import 'screens/shared/notifications_screen.dart';
+import 'screens/shared/announcement_detail_screen.dart';
+import 'models/announcement.dart';
 
 /// Dastur School Parent Portal
 ///
@@ -162,6 +164,10 @@ class DasturParentPortalApp extends StatelessWidget {
           '/admin-exam-timetable': (_) => const AdminExamTimetableScreen(),
           '/admin-reports': (_) => const AdminReportsScreen(),
           '/admin-settings': (_) => const AdminSettingsScreen(),
+          '/announcement-detail': (context) {
+            final ann = ModalRoute.of(context)!.settings.arguments as Announcement;
+            return AnnouncementDetailScreen(announcement: ann);
+          },
         },
       ),
     );
