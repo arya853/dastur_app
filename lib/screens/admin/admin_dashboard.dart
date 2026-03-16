@@ -58,8 +58,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ),
                   const SizedBox(width: 8),
                   Row(children: [
-                    const RoleBadge(role: 'admin'),
-                    const SizedBox(width: 12),
                     const NotificationBadge(),
                     const SizedBox(width: 12),
                     GestureDetector(

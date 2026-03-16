@@ -141,8 +141,6 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                           const SizedBox(width: 8),
                           Row(
                             children: [
-                              const RoleBadge(role: 'parent'),
-                              const SizedBox(width: 12),
                               const NotificationBadge(),
                               const SizedBox(width: 12),
                               GestureDetector(

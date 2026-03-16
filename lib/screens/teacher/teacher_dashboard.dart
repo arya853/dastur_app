@@ -63,8 +63,6 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                   ),
                   const SizedBox(width: 8),
                   Row(children: [
-                    const RoleBadge(role: 'teacher'),
-                    const SizedBox(width: 12),
                     const NotificationBadge(),
                     const SizedBox(width: 12),
                     GestureDetector(
