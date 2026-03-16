@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/app_user.dart';
-
-/// Authentication Service
-///
-/// Handles login/logout and role detection. Currently uses mock data
-/// for immediate testing. Replace with Firebase Auth for production.
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -15,25 +12,68 @@ class AuthService extends ChangeNotifier {
   AppUser? _currentUser;
   Map<String, dynamic>? _studentProfile;
   bool _isLoading = false;
+  bool _isInitializing = true;
 
   AppUser? get currentUser => _currentUser;
   Map<String, dynamic>? get studentProfile => _studentProfile;
   bool get isLoading => _isLoading;
+  bool get isInitializing => _isInitializing;
   bool get isLoggedIn => _currentUser != null;
 
   AuthService() {
+    _init();
+  }
+
+  Future<void> _init() async {
+    // 1. Try to load internal cached session first (handles manual/bypass logins)
+    await _loadSession();
+
+    // 2. Listen to Firebase Auth State Changes
     _auth.authStateChanges().listen((User? user) async {
       if (user == null) {
-        // Only clear if we aren't using the initial bypass
-        if (_currentUser?.uid != null && !_currentUser!.uid.startsWith('initial-admin-bypass') && !_currentUser!.uid.startsWith('manual-')) {
-          _currentUser = null;
-          _studentProfile = null;
-          notifyListeners();
+        // If Firebase says no user, but we have a 'manual' session, don't clear it.
+        // Firebase Auth only tracks Strategy 1 logins.
+        if (_currentUser != null && (_currentUser!.uid.startsWith('manual-') || _currentUser!.uid.startsWith('initial-')) ) {
+           _isInitializing = false;
+           notifyListeners();
+           return;
         }
+
+        // Otherwise clear session
+        _currentUser = null;
+        _studentProfile = null;
+        await _clearSession();
+        _isInitializing = false;
+        notifyListeners();
       } else {
-        await _fetchUserProfile(user.uid);
+        // Firebase user is present, ensure we have their profile
+        if (_currentUser == null || _currentUser!.uid != user.uid) {
+          await _fetchUserProfile(user.uid);
+          await _saveSession();
+        }
+        _isInitializing = false;
+        notifyListeners();
       }
     });
+
+    // ── Initial Check ──
+    final User? user = _auth.currentUser;
+    if (user != null) {
+      if (_currentUser == null || _currentUser!.uid != user.uid) {
+        await _fetchUserProfile(user.uid);
+        await _saveSession();
+      }
+      _isInitializing = false;
+      notifyListeners();
+    } else {
+       // Give it a tiny bit of time for authStateChanges or _loadSession to settle
+       Future.delayed(const Duration(milliseconds: 500), () {
+         if (_isInitializing) {
+           _isInitializing = false;
+           notifyListeners();
+         }
+       });
+    }
   }
 
   Future<void> _fetchUserProfile(String uid) async {
@@ -41,21 +81,12 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 1. Try fetching from generic users collection
+      // 1. Search in users
       DocumentSnapshot doc = await _db.collection('users').doc(uid).get();
       if (doc.exists) {
-        _currentUser = AppUser.fromMap(
-           doc.data() as Map<String, dynamic>,
-           doc.id,
-        );
-        
-        // If it's a parent/student, try to get their student record
-        if (_currentUser!.role == 'parent') {
-          final grNo = _currentUser!.email.split('@').first;
-          _studentProfile = await _findStudentByGr(grNo);
-        }
+        _currentUser = AppUser.fromMap(doc.data() as Map<String, dynamic>, doc.id);
       } else {
-        // 2. Try fetching from teachers collection if not in users
+        // 2. Search in teachers
         DocumentSnapshot teacherDoc = await _db.collection('teachers').doc(uid).get();
         if (teacherDoc.exists) {
           final data = teacherDoc.data() as Map<String, dynamic>;
@@ -65,8 +96,41 @@ class AuthService extends ChangeNotifier {
             role: 'teacher',
             displayName: data['name'] ?? 'Teacher',
           );
+        } else {
+          // 3. Fallback: Search in students (Parent case)
+          // We look for a student record where email matches Firebase Auth email
+          final email = _auth.currentUser?.email;
+          if (email != null && email.contains('@dastur.org')) {
+             final grNo = email.split('@').first;
+             _studentProfile = await _findStudentByGr(grNo);
+             if (_studentProfile != null) {
+                _currentUser = AppUser(
+                  uid: uid,
+                  email: email,
+                  role: 'parent',
+                  displayName: _studentProfile!['NAME'] ?? _studentProfile!['name'] ?? 'Parent',
+                );
+             }
+          }
         }
       }
+
+      // Final fallback if logged in but no profile found anywhere
+      if (_currentUser == null && _auth.currentUser != null) {
+         _currentUser = AppUser(
+           uid: uid,
+           email: _auth.currentUser!.email ?? '',
+           displayName: 'User',
+           role: 'parent', // Default to parent
+         );
+      }
+      
+      // Load student data if parent
+      if (_currentUser?.role == 'parent' && _studentProfile == null) {
+         final grNo = _currentUser!.email.split('@').first;
+         _studentProfile = await _findStudentByGr(grNo);
+      }
+
     } catch (e) {
       debugPrint("Error fetching user profile: $e");
     }
@@ -82,21 +146,15 @@ class AuthService extends ChangeNotifier {
 
     try {
       // ── Strategy 1: Standard Firebase Auth ──
-      UserCredential? credential;
       try {
-        credential = await _auth.signInWithEmailAndPassword(
-          email: email, 
-          password: password
-        );
+        UserCredential credential = await _auth.signInWithEmailAndPassword(email: email, password: password);
         await _fetchUserProfile(credential.user!.uid);
       } on FirebaseAuthException catch (e) {
-        // If it's a parent, we might be using the manual push data fallback
+        // ── Strategy 2: Student/Parent Manual Fallback ──
         if (requiredRole == 'parent' && (e.code == 'user-not-found' || e.code == 'invalid-credential' || e.code == 'wrong-password')) {
-          // Fallback to searching the 'students' collection
           final grNo = email.contains('@') ? email.split('@').first : email;
           final studentData = await _findStudentByGr(grNo);
           
-          // Match logic: password must be 'dastur123' OR the GR Number itself
           if (studentData != null && (password == 'dastur123' || password == grNo)) {
             _studentProfile = studentData;
             _currentUser = AppUser(
@@ -105,13 +163,14 @@ class AuthService extends ChangeNotifier {
               displayName: studentData['NAME'] ?? studentData['name'] ?? 'Parent',
               role: 'parent',
             );
+            await _saveSession();
             _isLoading = false;
             notifyListeners();
             return true;
           }
         }
         
-        // ── Initial Setup Bypass (Admin Only) ──
+        // ── Strategy 3: Setup Bypass (Admin Only) ──
         if ((e.code == 'user-not-found' || e.code == 'invalid-credential' || e.code == 'wrong-password') && 
             email == 'admin1@dastur.org' && password == 'admin123') {
           
@@ -127,98 +186,87 @@ class AuthService extends ChangeNotifier {
             displayName: 'Setup Administrator',
             role: 'admin',
           );
+          await _saveSession();
           _isLoading = false;
           notifyListeners();
           return true;
         }
 
-        debugPrint('FirebaseAuth Error: ${e.message}');
         _isLoading = false;
         notifyListeners();
         return false;
       }
       
-      // If Auth succeeded but Firestore profile is still missing, search in teachers/students
-      if (_currentUser == null) {
-         if (requiredRole == 'teacher') {
-            DocumentSnapshot teacherDoc = await _db.collection('teachers').doc(credential.user!.uid).get();
-            if (teacherDoc.exists) {
-               final data = teacherDoc.data() as Map<String, dynamic>;
-               _currentUser = AppUser(
-                  uid: credential.user!.uid,
-                  email: data['email'] ?? email,
-                  role: 'teacher',
-                  displayName: data['name'] ?? 'Teacher',
-               );
-            }
-         } else if (requiredRole == 'parent') {
-            final grNo = email.contains('@') ? email.split('@').first : email;
-             _studentProfile = await _findStudentByGr(grNo);
-             if (_studentProfile != null) {
-                _currentUser = AppUser(
-                  uid: credential.user!.uid,
-                  email: email,
-                  role: 'parent',
-                  displayName: _studentProfile!['NAME'] ?? _studentProfile!['name'] ?? 'Parent',
-                );
-             }
-         }
-      }
-
-      // Default fallback
-      _currentUser ??= AppUser(
-        uid: credential.user!.uid,
-        email: email,
-        displayName: 'User',
-        role: requiredRole ?? 'parent',
-      );
-
-      // ── Role Validation ──
+      // After Strategy 1 success, check role authorization
       if (requiredRole != null && _currentUser!.role != requiredRole) {
-        await _auth.signOut();
-        _currentUser = null;
-        _studentProfile = null;
-        _isLoading = false;
-        notifyListeners();
+        await logout();
         throw 'You are not authorized to access this portal.';
       }
 
+      await _saveSession();
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      debugPrint('Login Error: $e');
       _isLoading = false;
       notifyListeners();
       rethrow;
     }
   }
 
-  /// Searches the 'students' collection for a GR Number across all grades.
+  // ── Session Persistence (SharedPreferences) ──
+
+  Future<void> _saveSession() async {
+    if (_currentUser == null) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_session', json.encode(_currentUser!.toMap()..['uid'] = _currentUser!.uid));
+      if (_studentProfile != null) {
+        await prefs.setString('student_profile', json.encode(_studentProfile));
+      }
+    } catch (e) {
+      debugPrint("Error saving session: $e");
+    }
+  }
+
+  Future<void> _loadSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final sessionStr = prefs.getString('user_session');
+      if (sessionStr != null) {
+        final data = json.decode(sessionStr);
+        _currentUser = AppUser.fromMap(data, data['uid']);
+        
+        final profileStr = prefs.getString('student_profile');
+        if (profileStr != null) {
+          _studentProfile = json.decode(profileStr);
+        }
+      }
+    } catch (e) {
+      debugPrint("Error loading session: $e");
+    }
+  }
+
+  Future<void> _clearSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('user_session');
+    await prefs.remove('student_profile');
+  }
+
+  // ── Helpers ──
+
   Future<Map<String, dynamic>?> _findStudentByGr(String grNo) async {
-    // 1. Try global student collection first (if it exists)
     try {
        QuerySnapshot globalSearch = await _db.collection('students').where('grNo', isEqualTo: grNo).get();
        if (globalSearch.docs.isNotEmpty) return globalSearch.docs.first.data() as Map<String, dynamic>;
-    } catch (e) { /* Ignore */ }
+    } catch (e) {}
 
-    // 2. Try grade-level search (as used in the manual push script)
     final grades = ['grade5', 'grade6', 'grade7', 'grade8'];
     for (final grade in grades) {
       try {
-        DocumentSnapshot doc = await _db
-            .collection('students')
-            .doc(grade)
-            .collection('list')
-            .doc(grNo)
-            .get();
-        
-        if (doc.exists) {
-          return doc.data() as Map<String, dynamic>;
-        }
-      } catch (e) {
-        debugPrint("Error searching in $grade: $e");
-      }
+        DocumentSnapshot doc = await _db.collection('students').doc(grade).collection('list').doc(grNo).get();
+        if (doc.exists) return doc.data() as Map<String, dynamic>;
+      } catch (e) {}
     }
     return null;
   }
@@ -228,7 +276,6 @@ class AuthService extends ChangeNotifier {
       await _auth.sendPasswordResetEmail(email: email);
       return true;
     } catch (e) {
-      debugPrint('Password Reset Error: $e');
       return false;
     }
   }
@@ -237,6 +284,6 @@ class AuthService extends ChangeNotifier {
     await _auth.signOut();
     _currentUser = null;
     _studentProfile = null;
-    notifyListeners();
+    await _clearSession();
   }
 }

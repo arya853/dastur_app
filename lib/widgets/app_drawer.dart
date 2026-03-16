@@ -165,12 +165,11 @@ class AppDrawer extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Close drawer
+              // Reset navigation stack to root (AuthWrapper)
+              Navigator.popUntil(context, (route) => route.isFirst);
+              
+              // This triggers the auth state change which AuthWrapper reacts to
               await authService.logout();
-              if (context.mounted) {
-                Navigator.pushReplacementNamed(context, '/login');
-              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,

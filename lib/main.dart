@@ -15,6 +15,7 @@ import 'services/notification_service.dart';
 
 // Screens - Auth
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/auth_wrapper.dart';
 
 // Screens - Parent
 import 'screens/parent/parent_dashboard.dart';
@@ -114,8 +115,8 @@ class DasturParentPortalApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
 
-        // Start at the login screen
-        initialRoute: '/login',
+        // Use AuthWrapper to handle session persistence
+        home: const AuthWrapper(),
 
         // ── Named Routes ──
         routes: {

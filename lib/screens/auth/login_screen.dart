@@ -65,8 +65,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       );
 
       if (success && mounted) {
-        final route = _selectedPortal == 'admin' ? '/admin-dashboard' : (_selectedPortal == 'teacher' ? '/teacher-dashboard' : '/parent-dashboard');
-        Navigator.pushReplacementNamed(context, route);
+        // We don't need to navigate manually if AuthWrapper is listening to AuthService
+        // and switching the screen based on the logged in state.
+        // However, we can still keep it as a fallback or if we want specific transitions.
+        // In a reactive flow, simply reaching 'success' is enough.
       }
     } catch (e) {
       setState(() => _errorMessage = e.toString());
