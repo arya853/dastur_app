@@ -1,0 +1,222 @@
+[
+  {
+    "SR NO.": "1",
+    "GR NO.": "G5100",
+    "NAME": "Aarav Sharma",
+    "CLASS": "5",
+    "DIV": "A",
+    "ROLL NO.": "1",
+    "PARENT 1 NAME": "Mr. Sharma",
+    "PARENT 2 NAME": "Mrs. Sharma",
+    "EMAIL": "G5100@dastur.org"
+  },
+  {
+    "SR NO.": "2",
+    "GR NO.": "G5101",
+    "NAME": "Vivaan Patel",
+    "CLASS": "5",
+    "DIV": "A",
+    "ROLL NO.": "2",
+    "PARENT 1 NAME": "Mr. Patel",
+    "PARENT 2 NAME": "Mrs. Patel",
+    "EMAIL": "G5101@dastur.org"
+  },
+  {
+    "SR NO.": "3",
+    "GR NO.": "G5102",
+    "NAME": "Aditya Verma",
+    "CLASS": "5",
+    "DIV": "A",
+    "ROLL NO.": "3",
+    "PARENT 1 NAME": "Mr. Verma",
+    "PARENT 2 NAME": "Mrs. Verma",
+    "EMAIL": "G5102@dastur.org"
+  },
+  {
+    "SR NO.": "4",
+    "GR NO.": "G5103",
+    "NAME": "Arjun Singh",
+    "CLASS": "5",
+    "DIV": "A",
+    "ROLL NO.": "4",
+    "PARENT 1 NAME": "Mr. Singh",
+    "PARENT 2 NAME": "Mrs. Singh",
+    "EMAIL": "G5103@dastur.org"
+  },
+  {
+    "SR NO.": "5",
+    "GR NO.": "G5104",
+    "NAME": "Krish Nair",
+    "CLASS": "5",
+    "DIV": "A",
+    "ROLL NO.": "5",
+    "PARENT 1 NAME": "Mr. Nair",
+    "PARENT 2 NAME": "Mrs. Nair",
+    "EMAIL": "G5104@dastur.org"
+  },
+  {
+    "SR NO.": "6",
+    "GR NO.": "G5105",
+    "NAME": "Aryan Gupta",
+    "CLASS": "5",
+    "DIV": "A",
+    "ROLL NO.": "6",
+    "PARENT 1 NAME": "Mr. Gupta",
+    "PARENT 2 NAME": "Mrs. Gupta",
+    "EMAIL": "G5105@dastur.org"
+  },
+  {
+    "SR NO.": "7",
+    "GR NO.": "G5106",
+    "NAME": "Rohan Das",
+    "CLASS": "5",
+    "DIV": "A",
+    "ROLL NO.": "7",
+    "PARENT 1 NAME": "Mr. Das",
+    "PARENT 2 NAME": "Mrs. Das",
+    "EMAIL": "G5106@dastur.org"
+  },
+  {
+    "SR NO.": "8",
+    "GR NO.": "G5107",
+    "NAME": "Ishaan Iyer",
+    "CLASS": "5",
+    "DIV": "A",
+    "ROLL NO.": "8",
+    "PARENT 1 NAME": "Mr. Iyer",
+    "PARENT 2 NAME": "Mrs. Iyer",
+    "EMAIL": "G5107@dastur.org"
+  },
+  {
+    "SR NO.": "9",
+    "GR NO.": "G5108",
+    "NAME": "Dev Shah",
+    "CLASS": "5",
+    "DIV": "A",
+    "ROLL NO.": "9",
+    "PARENT 1 NAME": "Mr. Shah",
+    "PARENT 2 NAME": "Mrs. Shah",
+    "EMAIL": "G5108@dastur.org"
+  },
+  {
+    "SR NO.": "10",
+    "GR NO.": "G5109",
+    "NAME": "Karan Mehta",
+    "CLASS": "5",
+    "DIV": "A",
+    "ROLL NO.": "10",
+    "PARENT 1 NAME": "Mr. Mehta",
+    "PARENT 2 NAME": "Mrs. Mehta",
+    "EMAIL": "G5109@dastur.org"
+  },
+  {
+    "SR NO.": "11",
+    "GR NO.": "G5110",
+    "NAME": "Anaya Joshi",
+    "CLASS": "5",
+    "DIV": "B",
+    "ROLL NO.": "1",
+    "PARENT 1 NAME": "Mr. Joshi",
+    "PARENT 2 NAME": "Mrs. Joshi",
+    "EMAIL": "G5110@dastur.org"
+  },
+  {
+    "SR NO.": "12",
+    "GR NO.": "G5111",
+    "NAME": "Diya Kulkarni",
+    "CLASS": "5",
+    "DIV": "B",
+    "ROLL NO.": "2",
+    "PARENT 1 NAME": "Mr. Kulkarni",
+    "PARENT 2 NAME": "Mrs. Kulkarni",
+    "EMAIL": "G5111@dastur.org"
+  },
+  {
+    "SR NO.": "13",
+    "GR NO.": "G5112",
+    "NAME": "Sara Khan",
+    "CLASS": "5",
+    "DIV": "B",
+    "ROLL NO.": "3",
+    "PARENT 1 NAME": "Mr. Khan",
+    "PARENT 2 NAME": "Mrs. Khan",
+    "EMAIL": "G5112@dastur.org"
+  },
+  {
+    "SR NO.": "14",
+    "GR NO.": "G5113",
+    "NAME": "Riya Kapoor",
+    "CLASS": "5",
+    "DIV": "B",
+    "ROLL NO.": "4",
+    "PARENT 1 NAME": "Mr. Kapoor",
+    "PARENT 2 NAME": "Mrs. Kapoor",
+    "EMAIL": "G5113@dastur.org"
+  },
+  {
+    "SR NO.": "15",
+    "GR NO.": "G5114",
+    "NAME": "Myra Jain",
+    "CLASS": "5",
+    "DIV": "B",
+    "ROLL NO.": "5",
+    "PARENT 1 NAME": "Mr. Jain",
+    "PARENT 2 NAME": "Mrs. Jain",
+    "EMAIL": "G5114@dastur.org"
+  },
+  {
+    "SR NO.": "16",
+    "GR NO.": "G5115",
+    "NAME": "Tanvi Desai",
+    "CLASS": "5",
+    "DIV": "B",
+    "ROLL NO.": "6",
+    "PARENT 1 NAME": "Mr. Desai",
+    "PARENT 2 NAME": "Mrs. Desai",
+    "EMAIL": "G5115@dastur.org"
+  },
+  {
+    "SR NO.": "17",
+    "GR NO.": "G5116",
+    "NAME": "Kiara Malhotra",
+    "CLASS": "5",
+    "DIV": "B",
+    "ROLL NO.": "7",
+    "PARENT 1 NAME": "Mr. Malhotra",
+    "PARENT 2 NAME": "Mrs. Malhotra",
+    "EMAIL": "G5116@dastur.org"
+  },
+  {
+    "SR NO.": "18",
+    "GR NO.": "G5117",
+    "NAME": "Aisha Sheikh",
+    "CLASS": "5",
+    "DIV": "B",
+    "ROLL NO.": "8",
+    "PARENT 1 NAME": "Mr. Sheikh",
+    "PARENT 2 NAME": "Mrs. Sheikh",
+    "EMAIL": "G5117@dastur.org"
+  },
+  {
+    "SR NO.": "19",
+    "GR NO.": "G5118",
+    "NAME": "Pooja Reddy",
+    "CLASS": "5",
+    "DIV": "B",
+    "ROLL NO.": "9",
+    "PARENT 1 NAME": "Mr. Reddy",
+    "PARENT 2 NAME": "Mrs. Reddy",
+    "EMAIL": "G5118@dastur.org"
+  },
+  {
+    "SR NO.": "20",
+    "GR NO.": "G5119",
+    "NAME": "Nisha Pillai",
+    "CLASS": "5",
+    "DIV": "B",
+    "ROLL NO.": "10",
+    "PARENT 1 NAME": "Mr. Pillai",
+    "PARENT 2 NAME": "Mrs. Pillai",
+    "EMAIL": "G5119@dastur.org"
+  }
+]
