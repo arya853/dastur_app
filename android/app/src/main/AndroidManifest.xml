@@ -1,8 +1,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required for Android 13+ runtime notification permission prompt -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Required for FCM/network operations -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:label="dastur_parent_portal"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- Default channel id used by Firebase when posting notification messages on Android 8+ -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="dastur_general" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

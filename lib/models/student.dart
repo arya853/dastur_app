@@ -25,14 +25,14 @@ class Student {
   factory Student.fromMap(Map<String, dynamic> map, String id) {
     return Student(
       id: id,
-      name: map['name'] ?? '',
-      className: map['className'] ?? '',
-      division: map['division'] ?? map['section'] ?? '', // Handle migration from 'section'
-      rollNumber: map['rollNumber'] ?? '',
-      email: map['email'] ?? '',
+      name: map['name'] ?? map['NAME'] ?? '',
+      className: (map['className'] ?? map['CLASS'] ?? map['className'] ?? '').toString(),
+      division: map['division'] ?? map['DIV'] ?? map['SECTION'] ?? map['section'] ?? '', 
+      rollNumber: (map['rollNumber'] ?? map['ROLL NO.'] ?? '').toString(),
+      email: map['email'] ?? map['EMAIL'] ?? '',
       photoUrl: map['photoUrl'],
-      grNo: map['grNo'] ?? '',
-      parentDetails: map['parentDetails'],
+      grNo: (map['grNo'] ?? map['GR NO.'] ?? '').toString(),
+      parentDetails: map['parentDetails'] ?? map['PARENT DETAILS'] ?? map,
     );
   }
 
@@ -52,6 +52,21 @@ class Student {
   /// Full class identifier like "5 - A"
   String get fullClass => '$className - $division';
 
+<<<<<<< HEAD
   /// Alias for className to match UI usage
   String get grade => className;
+=======
+  /// Helper to get parent name from details
+  String get parentName {
+    if (parentDetails == null) return 'Parent';
+    return parentDetails!['name'] ?? 
+           parentDetails!['NAME'] ?? 
+           parentDetails!['PARENT 1 NAME'] ?? 
+           parentDetails!['PARENT NAME'] ?? 
+           'Parent';
+  }
+  
+  /// Helper to get parent phone from details
+  String get parentPhone => parentDetails?['phone'] ?? parentDetails?['PHONE'] ?? 'N/A';
+>>>>>>> main
 }

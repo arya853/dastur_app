@@ -22,13 +22,35 @@ class ParentIdCardScreen extends StatelessWidget {
 
     if (currentUser == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
+    final studentProfileData = authService.studentProfile;
+
+    // Use pre-fetched profile from AuthService if available
+    if (studentProfileData != null) {
+      final student = Student.fromMap(studentProfileData, studentProfileData['id'] ?? studentProfileData['GR NO.'] ?? studentProfileData['grNo'] ?? 'parent-student');
+      return Scaffold(
+        backgroundColor: AppColors.primary,
+        appBar: _buildAppBar(context, currentUser, student),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: _buildIdCard(currentUser, student),
+          ),
+        ),
+      );
+    }
+
+    final grNoStr = currentUser.email.split('@')[0];
+
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('students')
-          .where('grNo', isEqualTo: currentUser.email.split('@')[0])
+          .where(Filter.or(
+            Filter('grNo', isEqualTo: grNoStr),
+            Filter('GR NO.', isEqualTo: grNoStr)
+          ))
           .snapshots(),
       builder: (context, snapshot) {
-        // demo data fallback
+        // fallback to demo data only as a last resort
         Student student = MockDataService.demoStudent;
         if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
           student = Student.fromMap(
@@ -39,17 +61,7 @@ class ParentIdCardScreen extends StatelessWidget {
 
         return Scaffold(
           backgroundColor: AppColors.primary,
-          appBar: AppBar(
-            title: const Text('Virtual Gate Pass'),
-            backgroundColor: Colors.transparent, elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.textOnDark, size: 20),
-              onPressed: () => Navigator.pop(context)),
-            actions: [
-              IconButton(icon: const Icon(Icons.fullscreen, color: AppColors.textOnDark),
-                onPressed: () => _showFullScreen(context, currentUser, student)),
-            ],
-          ),
+          appBar: _buildAppBar(context, currentUser, student),
           body: Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
@@ -61,8 +73,22 @@ class ParentIdCardScreen extends StatelessWidget {
     );
   }
 
+  AppBar _buildAppBar(BuildContext context, AppUser currentUser, Student student) {
+    return AppBar(
+      title: const Text('Virtual Gate Pass'),
+      backgroundColor: Colors.transparent, elevation: 0,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.textOnDark, size: 20),
+        onPressed: () => Navigator.pop(context)),
+      actions: [
+        IconButton(icon: const Icon(Icons.fullscreen, color: AppColors.textOnDark),
+          onPressed: () => _showFullScreen(context, currentUser, student)),
+      ],
+    );
+  }
+
   Widget _buildIdCard(AppUser parent, Student student) {
-    final parentName = parent.displayName ?? 'Parent';
+    final parentName = parent.displayName;
     final qrCodeId = 'DASTUR-QR-P-${student.grNo}-2024';
 
     return Container(
@@ -118,9 +144,9 @@ class ParentIdCardScreen extends StatelessWidget {
         const SizedBox(height: 12),
         Text(parentName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
         const SizedBox(height: 4),
-        Text('Parent of \${student.name}', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+        Text('Parent of ${student.name}', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
         const SizedBox(height: 4),
-        Text('Class \${student.fullClass}', style: const TextStyle(fontSize: 12, color: AppColors.accent, fontWeight: FontWeight.w600)),
+        Text('Class ${student.fullClass}', style: const TextStyle(fontSize: 12, color: AppColors.accent, fontWeight: FontWeight.w600)),
         const SizedBox(height: 16),
         // QR Code placeholder
         Container(
@@ -137,9 +163,9 @@ class ParentIdCardScreen extends StatelessWidget {
           ]),
         ),
         const SizedBox(height: 14),
-        Text('Linked Student GR No: \${student.grNo}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+        Text('Linked Student GR No: ${student.grNo}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
         const SizedBox(height: 4),
-        Text('Valid: \${AppConstants.academicYear}', style: const TextStyle(fontSize: 11, color: AppColors.textSubtle)),
+        Text('Valid: ${AppConstants.academicYear}', style: const TextStyle(fontSize: 11, color: AppColors.textSubtle)),
       ]),
     );
   }

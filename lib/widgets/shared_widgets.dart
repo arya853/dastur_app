@@ -1,5 +1,57 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../core/app_colors.dart';
+import '../services/notification_service.dart';
+
+/// A notification icon with a red dot badge for unread notifications.
+class NotificationBadge extends StatelessWidget {
+  const NotificationBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // We listen to changes in NotificationService to update the badge
+    final notificationService = Provider.of<NotificationService>(context);
+    final unreadCount = notificationService.unreadCount;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        GestureDetector(
+          onTap: () => Navigator.pushNamed(context, '/notifications'),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.notifications_none_outlined,
+              color: AppColors.textOnDark,
+              size: 24,
+            ),
+          ),
+        ),
+        if (unreadCount > 0)
+          Positioned(
+            right: 2,
+            top: 2,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: AppColors.error,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1.5),
+              ),
+              constraints: const BoxConstraints(
+                minWidth: 10,
+                minHeight: 10,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
 
 /// A custom gradient app bar with the school's premium styling.
 class GradientAppBar extends StatelessWidget implements PreferredSizeWidget {

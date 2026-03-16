@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../../core/app_colors.dart';
 import '../../core/app_constants.dart';
 import '../../widgets/dashboard_tile.dart';
@@ -7,8 +8,8 @@ import '../../services/auth_service.dart';
 import '../../services/mock_data_service.dart';
 import '../../models/student.dart';
 import 'package:provider/provider.dart';
-
 import '../../services/notification_service.dart';
+import '../../widgets/app_drawer.dart';
 
 /// Parent Dashboard Screen
 ///
@@ -22,6 +23,12 @@ class ParentDashboardScreen extends StatefulWidget {
 }
 
 class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  late PageController _pageController;
+  Timer? _carouselTimer;
+  int _currentPage = 0;
+  final int _announcementCount = 3; // Show top 3
+
   @override
   void initState() {
     super.initState();
@@ -29,25 +36,60 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _subscribeToStudentTopic();
     });
+    
+    _pageController = PageController(initialPage: 0);
+    _startCarouselTimer();
+  }
+
+  void _startCarouselTimer() {
+    _carouselTimer?.cancel();
+    _carouselTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (_pageController.hasClients) {
+        _currentPage = (_currentPage + 1) % _announcementCount;
+        _pageController.animateToPage(
+          _currentPage,
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeInOutCubic,
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _carouselTimer?.cancel();
+    _pageController.dispose();
+    super.dispose();
   }
 
   void _subscribeToStudentTopic() {
-    final student = MockDataService.demoStudent;
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final studentData = authService.studentProfile;
     final notificationService = Provider.of<NotificationService>(context, listen: false);
     
-    // Topic format: class_8_div_A
-    final topic = 'class_${student.grade}_div_${student.division}'.toLowerCase();
-    notificationService.subscribeToTopic(topic);
+    if (studentData != null) {
+      // Topic format: class_VIII_div_A (matches teacher-side notifications)
+      final className = studentData['className'] ?? studentData['CLASS'] ?? 'Unknown';
+      final division = studentData['division'] ?? studentData['DIV'] ?? 'Unknown';
+      final topic = 'class_${className}_div_${division}'.toLowerCase();
+      notificationService.subscribeToTopic(topic);
+    }
     notificationService.subscribeToTopic('school_announcements');
   }
 
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
-    final student = MockDataService.demoStudent;
+    final studentData = authService.studentProfile;
+    final studentDisplayName = studentData?['name'] ?? studentData?['NAME'] ?? 'Student';
+    final studentClass = studentData?['className'] ?? studentData?['CLASS'] ?? '?';
+    final studentDiv = studentData?['division'] ?? studentData?['DIV'] ?? '?';
+    final studentRoll = studentData?['rollNumber'] ?? studentData?['ROLL NO.'] ?? '?';
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: AppColors.background,
+      endDrawer: const AppDrawer(),
       body: CustomScrollView(
         slivers: [
           // ── Premium Header with student info ──
@@ -67,53 +109,54 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Top row: greeting + logout
+                      // Top row: greeting + menu
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Parent: ${authService.currentUser?.displayName ?? "User"}',
-                                style: const TextStyle(
-                                  color: AppColors.textOnDark,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Parent: ${authService.currentUser?.displayName ?? "User"}',
+                                  style: const TextStyle(
+                                    color: AppColors.textOnDark,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Student: ${student.name}',
-                                style: TextStyle(
-                                  color: AppColors.accent.withValues(alpha: 0.9),
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Student: $studentDisplayName',
+                                  style: TextStyle(
+                                    color: AppColors.accent.withValues(alpha: 0.9),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 8),
                           Row(
                             children: [
-                              const RoleBadge(role: 'parent'),
-                              const SizedBox(width: 8),
+                              const NotificationBadge(),
+                              const SizedBox(width: 12),
                               GestureDetector(
-                                onTap: () async {
-                                  await authService.logout();
-                                  if (context.mounted) {
-                                    Navigator.pushReplacementNamed(
-                                        context, '/login');
-                                  }
-                                },
+                                onTap: () => _scaffoldKey.currentState?.openEndDrawer(),
                                 child: Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color:
-                                        Colors.white.withValues(alpha: 0.1),
+                                    color: Colors.white.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
-                                  child: const Icon(Icons.logout,
-                                      color: AppColors.textOnDark, size: 20),
+                                  child: const Icon(
+                                    Icons.menu,
+                                    color: AppColors.textOnDark,
+                                    size: 24,
+                                  ),
                                 ),
                               ),
                             ],
@@ -138,7 +181,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                               backgroundColor:
                                   AppColors.accent.withValues(alpha: 0.2),
                               child: Text(
-                                student.name[0],
+                                studentDisplayName.isNotEmpty ? studentDisplayName[0] : 'S',
                                 style: const TextStyle(
                                     color: AppColors.accent,
                                     fontWeight: FontWeight.w700,
@@ -151,7 +194,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    student.name,
+                                    studentDisplayName,
                                     style: const TextStyle(
                                       color: AppColors.textOnDark,
                                       fontWeight: FontWeight.w600,
@@ -160,7 +203,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Class ${student.fullClass} • Roll No. ${student.rollNumber}',
+                                    'Class $studentClass - $studentDiv • Roll No. $studentRoll',
                                     style: TextStyle(
                                       color: AppColors.textOnDark
                                           .withValues(alpha: 0.7),
@@ -195,9 +238,9 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
             ),
           ),
 
-          // ── Dashboard Grid Title ──
-          const SliverToBoxAdapter(
-            child: SectionHeader(title: 'Quick Access'),
+          // ── Announcement Carousel ──
+          SliverToBoxAdapter(
+            child: _buildAnnouncementCarousel(),
           ),
 
           // ── 12-Tile Dashboard Grid ──
@@ -236,19 +279,6 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                   onTap: () => Navigator.pushNamed(context, '/ebooks'),
                 ),
                 DashboardTile(
-                  icon: Icons.quiz,
-                  label: 'Quizzes',
-                  iconColor: AppColors.tileIconColors[5],
-                  onTap: () => Navigator.pushNamed(context, '/quizzes'),
-                ),
-                DashboardTile(
-                  icon: Icons.description,
-                  label: 'Practice\nPapers',
-                  iconColor: AppColors.tileIconColors[6],
-                  onTap: () =>
-                      Navigator.pushNamed(context, '/practice-papers'),
-                ),
-                DashboardTile(
                   icon: Icons.account_balance_wallet,
                   label: 'Fees',
                   iconColor: AppColors.tileIconColors[7],
@@ -279,61 +309,84 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                   iconColor: AppColors.tileIconColors[11],
                   onTap: () => Navigator.pushNamed(context, '/profile'),
                 ),
+                DashboardTile(
+                  icon: Icons.book_rounded,
+                  label: 'Home Work',
+                  iconColor: AppColors.tileIconColors[5],
+                  onTap: () => Navigator.pushNamed(context, '/home-work'),
+                ),
               ],
             ),
           ),
 
-          // ── Recent Announcements Preview ──
-          const SliverToBoxAdapter(
-            child: SectionHeader(title: 'Recent Announcements'),
-          ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final ann = MockDataService.announcements[index];
-                return Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          const SliverToBoxAdapter(child: SizedBox(height: 32)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnnouncementCarousel() {
+    final announcements = MockDataService.announcements.take(_announcementCount).toList();
+    
+    return Column(
+      children: [
+        SizedBox(
+          height: 90,
+          child: PageView.builder(
+            controller: _pageController,
+            onPageChanged: (index) => setState(() => _currentPage = index),
+            itemCount: announcements.length,
+            itemBuilder: (context, index) {
+              final ann = announcements[index];
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: InkWell(
+                  onTap: () => Navigator.pushNamed(
+                    context, 
+                    '/announcement-detail', 
+                    arguments: ann,
+                  ),
+                  borderRadius: BorderRadius.circular(AppConstants.radiusMd),
                   child: Container(
-                    padding: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: AppColors.surface,
-                      borderRadius:
-                          BorderRadius.circular(AppConstants.radiusMd),
+                      borderRadius: BorderRadius.circular(AppConstants.radiusMd),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.04),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+                          color: AppColors.primary.withValues(alpha: 0.06),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
                         ),
                       ],
                     ),
                     child: Row(
                       children: [
                         Container(
-                          width: 40,
-                          height: 40,
+                          width: 36,
+                          height: 36,
                           decoration: BoxDecoration(
-                            color: _getAnnouncementColor(ann.type)
-                                .withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(10),
+                            color: _getAnnouncementColor(ann.type).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: Icon(
                             _getAnnouncementIcon(ann.type),
                             color: _getAnnouncementColor(ann.type),
-                            size: 20,
+                            size: 18,
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 ann.title,
                                 style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w700,
                                   fontSize: 13,
+                                  color: AppColors.textPrimary,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -342,7 +395,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                               Text(
                                 '${ann.date.day}/${ann.date.month}/${ann.date.year}',
                                 style: const TextStyle(
-                                  color: AppColors.textSubtle,
+                                  color: AppColors.textSecondary,
                                   fontSize: 11,
                                 ),
                               ),
@@ -356,14 +409,31 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                       ],
                     ),
                   ),
-                );
-              },
-              childCount: 3, // Show only first 3
+                ),
+              );
+            },
+          ),
+        ),
+        // Indicators
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            announcements.length,
+            (index) => Container(
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              width: _currentPage == index ? 12 : 6,
+              height: 6,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(3),
+                color: _currentPage == index 
+                    ? AppColors.primary 
+                    : AppColors.primary.withValues(alpha: 0.2),
+              ),
             ),
           ),
-          const SliverToBoxAdapter(child: SizedBox(height: 32)),
-        ],
-      ),
+        ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 

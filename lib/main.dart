@@ -15,6 +15,7 @@ import 'services/notification_service.dart';
 
 // Screens - Auth
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/auth_wrapper.dart';
 
 // Screens - Parent
 import 'screens/parent/parent_dashboard.dart';
@@ -35,11 +36,15 @@ import 'screens/shared/syllabus_screen.dart';
 import 'screens/shared/ebooks_screen.dart';
 import 'screens/shared/quizzes_screen.dart';
 import 'screens/shared/practice_papers_screen.dart';
+import 'screens/shared/home_work_screen.dart';
 import 'screens/shared/fees_screen.dart';
 import 'screens/shared/attendance_screen.dart';
 import 'screens/shared/timetable_screen.dart';
 import 'screens/shared/profile_screen.dart';
 import 'screens/shared/parent_id_card_screen.dart';
+import 'screens/shared/notifications_screen.dart';
+import 'screens/shared/announcement_detail_screen.dart';
+import 'models/announcement.dart';
 
 /// Dastur School Parent Portal
 ///
@@ -50,7 +55,7 @@ import 'screens/shared/parent_id_card_screen.dart';
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   // Handle background message
-  debugPrint("Handling a background message: \${message.messageId}");
+  debugPrint("Handling a background message: ${message.messageId}");
 }
 
 void main() async {
@@ -103,15 +108,15 @@ class DasturParentPortalApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
         Provider(create: (_) => PhotoUploadService()),
-        Provider(create: (_) => NotificationService()),
+        ChangeNotifierProvider(create: (_) => NotificationService()),
       ],
       child: MaterialApp(
         title: AppConstants.schoolShortName,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
 
-        // Start at the login screen
-        initialRoute: '/login',
+        // Use AuthWrapper to handle session persistence
+        home: const AuthWrapper(),
 
         // ── Named Routes ──
         routes: {
@@ -133,12 +138,14 @@ class DasturParentPortalApp extends StatelessWidget {
           '/quizzes': (_) => const QuizzesScreen(),
           '/quiz-play': (_) => const QuizPlayScreen(),
           '/practice-papers': (_) => const PracticePapersScreen(),
+          '/home-work': (_) => const HomeWorkScreen(),
           '/fees': (_) => const FeesScreen(),
           '/attendance': (_) => const AttendanceScreen(),
           '/timetable': (_) => const TimetableScreen(),
           '/exam-timetable': (_) => const ExamTimetableScreen(),
           '/profile': (_) => const ProfileScreen(),
           '/parent-id-card': (_) => const ParentIdCardScreen(),
+          '/notifications': (_) => const NotificationsScreen(),
 
           // Teacher-specific screens
           '/teacher-mark-attendance': (_) => const MarkAttendanceScreen(),
@@ -158,6 +165,10 @@ class DasturParentPortalApp extends StatelessWidget {
           '/admin-exam-timetable': (_) => const AdminExamTimetableScreen(),
           '/admin-reports': (_) => const AdminReportsScreen(),
           '/admin-settings': (_) => const AdminSettingsScreen(),
+          '/announcement-detail': (context) {
+            final ann = ModalRoute.of(context)!.settings.arguments as Announcement;
+            return AnnouncementDetailScreen(announcement: ann);
+          },
         },
       ),
     );

@@ -65,8 +65,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       );
 
       if (success && mounted) {
-        final route = _selectedPortal == 'admin' ? '/admin-dashboard' : (_selectedPortal == 'teacher' ? '/teacher-dashboard' : '/parent-dashboard');
-        Navigator.pushReplacementNamed(context, route);
+        // We don't need to navigate manually if AuthWrapper is listening to AuthService
+        // and switching the screen based on the logged in state.
+        // However, we can still keep it as a fallback or if we want specific transitions.
+        // In a reactive flow, simply reaching 'success' is enough.
       }
     } catch (e) {
       setState(() => _errorMessage = e.toString());
@@ -91,9 +93,18 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               child: Column(
                 children: [
                   const SizedBox(height: 40),
-                  const Icon(Icons.school_rounded, size: 70, color: AppColors.accent),
+                  Image.asset(
+                    'assets/images/school_logo.png',
+                    height: 120,
+                    fit: BoxFit.contain,
+                  ),
                   const SizedBox(height: 16),
-                  const Text(AppConstants.schoolShortName, style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1.2)),
+                  const Text(AppConstants.schoolShortName,
+                      style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 1.2)),
                   const SizedBox(height: 8),
                   const Text('“Good Thoughts, Good Words, Good Deeds”', 
                     textAlign: TextAlign.center,
@@ -187,6 +198,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     controller: _grController,
                     style: const TextStyle(color: Colors.white),
                     decoration: _inputDecoration('GR Number', Icons.numbers_outlined, hint: 'e.g. 2024001'),
+                    onChanged: (v) => setState(() => _errorMessage = null),
                     validator: (v) => v!.isEmpty ? 'Enter GR Number' : null,
                   ),
                 ] else ...[
@@ -194,6 +206,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     controller: _emailController,
                     style: const TextStyle(color: Colors.white),
                     decoration: _inputDecoration('Email Address', Icons.email_outlined, hint: 'school@dastur.org'),
+                    onChanged: (v) => setState(() => _errorMessage = null),
                     validator: (v) => v!.isEmpty || !v.contains('@') ? 'Enter a valid email' : null,
                   ),
                 ],
@@ -208,6 +221,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                     ),
                   ),
+                  onChanged: (v) => setState(() => _errorMessage = null),
                   validator: (v) => v!.isEmpty ? 'Enter password' : null,
                 ),
                 if (_errorMessage != null) ...[

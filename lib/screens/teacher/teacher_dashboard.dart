@@ -8,20 +8,36 @@ import '../../services/auth_service.dart';
 import '../../services/mock_data_service.dart';
 import '../../models/teacher.dart';
 
+import '../../widgets/app_drawer.dart';
+
 /// Teacher Dashboard Screen
 ///
 /// Overview of today's classes, quick actions for attendance,
 /// quizzes, syllabus updates, and class management.
-class TeacherDashboardScreen extends StatelessWidget {
+class TeacherDashboardScreen extends StatefulWidget {
   const TeacherDashboardScreen({super.key});
+
+  @override
+  State<TeacherDashboardScreen> createState() => _TeacherDashboardScreenState();
+}
+
+class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
-    final teacher = MockDataService.demoTeacher;
+    final user = authService.currentUser;
+    
+    // In a real app, we'd fetch the full Teacher model. 
+    // For now, we'll try to get subjects/classes from metadata or use defaults.
+    final List<String> subjects = ['General']; // Default
+    final List<String> classes = ['All']; // Default
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: AppColors.background,
+      endDrawer: const AppDrawer(),
       body: CustomScrollView(
         slivers: [
           // Header
@@ -34,29 +50,41 @@ class TeacherDashboardScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Good Morning,', style: TextStyle(color: AppColors.textOnDark.withValues(alpha: 0.7), fontSize: 14)),
-                    Text(authService.currentUser?.displayName ?? 'Teacher', style: const TextStyle(color: AppColors.textOnDark, fontSize: 20, fontWeight: FontWeight.w700)),
-                  ]),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Good Morning,', 
+                        style: TextStyle(color: AppColors.textOnDark.withValues(alpha: 0.7), fontSize: 14),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(user?.displayName ?? 'Teacher', 
+                        style: const TextStyle(color: AppColors.textOnDark, fontSize: 20, fontWeight: FontWeight.w700),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ]),
+                  ),
+                  const SizedBox(width: 8),
                   Row(children: [
-                    const RoleBadge(role: 'teacher'),
-                    const SizedBox(width: 8),
+                    const NotificationBadge(),
+                    const SizedBox(width: 12),
                     GestureDetector(
-                      onTap: () async { await authService.logout(); if (context.mounted) Navigator.pushReplacementNamed(context, '/login'); },
-                      child: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-                        child: const Icon(Icons.logout, color: AppColors.textOnDark, size: 20)),
+                      onTap: () => _scaffoldKey.currentState?.openEndDrawer(),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                        child: const Icon(Icons.menu, color: AppColors.textOnDark, size: 24),
+                      ),
                     ),
                   ]),
                 ]),
                 const SizedBox(height: 12),
                 // Classes & subjects
                 Wrap(spacing: 8, runSpacing: 6, children: [
-                  ...teacher.subjects.map((s) => Container(
+                  ...subjects.map((s) => Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                     decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(20)),
                     child: Text(s, style: const TextStyle(color: AppColors.accent, fontSize: 12, fontWeight: FontWeight.w600)),
                   )),
-                  ...teacher.assignedClasses.map((c) => Container(
+                  ...classes.map((c) => Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                     decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
                     child: Text(c, style: const TextStyle(color: AppColors.textOnDarkMuted, fontSize: 12, fontWeight: FontWeight.w500)),
@@ -81,7 +109,7 @@ class TeacherDashboardScreen extends StatelessWidget {
                   onTap: () => Navigator.pushNamed(context, '/teacher-quizzes')),
                 DashboardTile(icon: Icons.upload_file, label: 'Upload\nE-Book', iconColor: AppColors.tileIconColors[4],
                   onTap: () => Navigator.pushNamed(context, '/ebooks')),
-                DashboardTile(icon: Icons.description, label: 'Upload\nPapers', iconColor: AppColors.tileIconColors[6],
+                DashboardTile(icon: Icons.description, label: 'Upload\nWorksheets', iconColor: AppColors.tileIconColors[6],
                   onTap: () => Navigator.pushNamed(context, '/practice-papers')),
                 DashboardTile(icon: Icons.schedule, label: 'My\nTimetable', iconColor: AppColors.tileIconColors[9],
                   onTap: () => Navigator.pushNamed(context, '/timetable')),

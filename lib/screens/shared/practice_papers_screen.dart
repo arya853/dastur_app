@@ -4,7 +4,7 @@ import '../../core/app_constants.dart';
 import '../../widgets/shared_widgets.dart';
 import '../../services/mock_data_service.dart';
 
-/// Practice Papers Screen – downloadable papers by subject.
+/// Worksheets Screen – downloadable papers by subject.
 class PracticePapersScreen extends StatelessWidget {
   const PracticePapersScreen({super.key});
 
@@ -18,7 +18,7 @@ class PracticePapersScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      appBar: const GradientAppBar(title: 'Practice Papers', showBackButton: true),
+      appBar: const GradientAppBar(title: 'Worksheets', showBackButton: true),
       backgroundColor: AppColors.background,
       body: ListView(
         padding: const EdgeInsets.all(16),

@@ -1,0 +1,27 @@
+{
+  "name": "dastur_app",
+  "version": "1.0.0",
+  "description": "A comprehensive cross-platform Flutter application serving parents, teachers, and administrators of Sardar Dastur Hormazdiar High School (Pune).",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arya853/dastur_app.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/arya853/dastur_app/issues"
+  },
+  "homepage": "https://github.com/arya853/dastur_app#readme",
+  "dependencies": {
+    "firebase-admin": "^13.7.0"
+  }
+}
