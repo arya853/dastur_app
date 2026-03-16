@@ -196,7 +196,8 @@ class AuthService extends ChangeNotifier {
         notifyListeners();
         
         // Map common Firebase errors to user-friendly messages
-        String msg = 'Invalid email or password.';
+        String fieldLabel = requiredRole == 'parent' ? 'GR number' : 'email';
+        String msg = 'Invalid $fieldLabel or password.';
         if (e.code == 'user-disabled') msg = 'This account has been disabled.';
         if (e.code == 'too-many-requests') msg = 'Too many failed attempts. Try again later.';
         if (e.code == 'network-request-failed') msg = 'Network error. Please check your connection.';
