@@ -198,6 +198,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     controller: _grController,
                     style: const TextStyle(color: Colors.white),
                     decoration: _inputDecoration('GR Number', Icons.numbers_outlined, hint: 'e.g. 2024001'),
+                    onChanged: (v) => setState(() => _errorMessage = null),
                     validator: (v) => v!.isEmpty ? 'Enter GR Number' : null,
                   ),
                 ] else ...[
@@ -205,6 +206,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     controller: _emailController,
                     style: const TextStyle(color: Colors.white),
                     decoration: _inputDecoration('Email Address', Icons.email_outlined, hint: 'school@dastur.org'),
+                    onChanged: (v) => setState(() => _errorMessage = null),
                     validator: (v) => v!.isEmpty || !v.contains('@') ? 'Enter a valid email' : null,
                   ),
                 ],
@@ -219,6 +221,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                     ),
                   ),
+                  onChanged: (v) => setState(() => _errorMessage = null),
                   validator: (v) => v!.isEmpty ? 'Enter password' : null,
                 ),
                 if (_errorMessage != null) ...[
