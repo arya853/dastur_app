@@ -108,7 +108,12 @@ class AuthService extends ChangeNotifier {
                   uid: uid,
                   email: email,
                   role: 'parent',
-                  displayName: _studentProfile!['NAME'] ?? _studentProfile!['name'] ?? 'Parent',
+                  displayName: _studentProfile!['PARENT 1 NAME'] ?? 
+                               _studentProfile!['parentDetails']?['name'] ?? 
+                               _studentProfile!['parentDetails']?['NAME'] ?? 
+                               _studentProfile!['NAME'] ?? 
+                               _studentProfile!['name'] ?? 
+                               'Parent',
                 );
              }
           }
@@ -160,7 +165,12 @@ class AuthService extends ChangeNotifier {
             _currentUser = AppUser(
               uid: 'manual-${studentData['GR NO.'] ?? studentData['grNo']}',
               email: studentData['EMAIL'] ?? studentData['email'] ?? '$grNo@dastur.org',
-              displayName: studentData['NAME'] ?? studentData['name'] ?? 'Parent',
+              displayName: studentData['PARENT 1 NAME'] ?? 
+                           studentData['parentDetails']?['name'] ?? 
+                           studentData['parentDetails']?['NAME'] ?? 
+                           studentData['NAME'] ?? 
+                           studentData['name'] ?? 
+                           'Parent',
               role: 'parent',
             );
             await _saveSession();
@@ -265,8 +275,12 @@ class AuthService extends ChangeNotifier {
 
   Future<Map<String, dynamic>?> _findStudentByGr(String grNo) async {
     try {
+       // Try both lowercase and uppercase fields
        QuerySnapshot globalSearch = await _db.collection('students').where('grNo', isEqualTo: grNo).get();
        if (globalSearch.docs.isNotEmpty) return globalSearch.docs.first.data() as Map<String, dynamic>;
+       
+       QuerySnapshot globalSearchUpper = await _db.collection('students').where('GR NO.', isEqualTo: grNo).get();
+       if (globalSearchUpper.docs.isNotEmpty) return globalSearchUpper.docs.first.data() as Map<String, dynamic>;
     } catch (e) {}
 
     final grades = ['grade5', 'grade6', 'grade7', 'grade8'];

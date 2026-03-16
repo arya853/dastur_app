@@ -26,13 +26,13 @@ class Student {
     return Student(
       id: id,
       name: map['name'] ?? map['NAME'] ?? '',
-      className: map['className'] ?? map['CLASS'] ?? '',
-      division: map['division'] ?? map['DIV'] ?? map['section'] ?? '', 
+      className: (map['className'] ?? map['CLASS'] ?? map['className'] ?? '').toString(),
+      division: map['division'] ?? map['DIV'] ?? map['SECTION'] ?? map['section'] ?? '', 
       rollNumber: (map['rollNumber'] ?? map['ROLL NO.'] ?? '').toString(),
       email: map['email'] ?? map['EMAIL'] ?? '',
       photoUrl: map['photoUrl'],
       grNo: (map['grNo'] ?? map['GR NO.'] ?? '').toString(),
-      parentDetails: map['parentDetails'] ?? map['PARENT DETAILS'],
+      parentDetails: map['parentDetails'] ?? map['PARENT DETAILS'] ?? map,
     );
   }
 
@@ -51,4 +51,17 @@ class Student {
 
   /// Full class identifier like "5 - A"
   String get fullClass => '$className - $division';
+
+  /// Helper to get parent name from details
+  String get parentName {
+    if (parentDetails == null) return 'Parent';
+    return parentDetails!['name'] ?? 
+           parentDetails!['NAME'] ?? 
+           parentDetails!['PARENT 1 NAME'] ?? 
+           parentDetails!['PARENT NAME'] ?? 
+           'Parent';
+  }
+  
+  /// Helper to get parent phone from details
+  String get parentPhone => parentDetails?['phone'] ?? parentDetails?['PHONE'] ?? 'N/A';
 }
