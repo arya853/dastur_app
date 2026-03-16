@@ -25,14 +25,14 @@ class Student {
   factory Student.fromMap(Map<String, dynamic> map, String id) {
     return Student(
       id: id,
-      name: map['name'] ?? '',
-      className: map['className'] ?? '',
-      division: map['division'] ?? map['section'] ?? '', // Handle migration from 'section'
-      rollNumber: map['rollNumber'] ?? '',
-      email: map['email'] ?? '',
+      name: map['name'] ?? map['NAME'] ?? '',
+      className: map['className'] ?? map['CLASS'] ?? '',
+      division: map['division'] ?? map['DIV'] ?? map['section'] ?? '', 
+      rollNumber: (map['rollNumber'] ?? map['ROLL NO.'] ?? '').toString(),
+      email: map['email'] ?? map['EMAIL'] ?? '',
       photoUrl: map['photoUrl'],
-      grNo: map['grNo'] ?? '',
-      parentDetails: map['parentDetails'],
+      grNo: (map['grNo'] ?? map['GR NO.'] ?? '').toString(),
+      parentDetails: map['parentDetails'] ?? map['PARENT DETAILS'],
     );
   }
 

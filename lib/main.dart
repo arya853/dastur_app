@@ -35,6 +35,7 @@ import 'screens/shared/syllabus_screen.dart';
 import 'screens/shared/ebooks_screen.dart';
 import 'screens/shared/quizzes_screen.dart';
 import 'screens/shared/practice_papers_screen.dart';
+import 'screens/shared/home_work_screen.dart';
 import 'screens/shared/fees_screen.dart';
 import 'screens/shared/attendance_screen.dart';
 import 'screens/shared/timetable_screen.dart';
@@ -50,7 +51,7 @@ import 'screens/shared/parent_id_card_screen.dart';
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   // Handle background message
-  debugPrint("Handling a background message: \${message.messageId}");
+  debugPrint("Handling a background message: ${message.messageId}");
 }
 
 void main() async {
@@ -133,6 +134,7 @@ class DasturParentPortalApp extends StatelessWidget {
           '/quizzes': (_) => const QuizzesScreen(),
           '/quiz-play': (_) => const QuizPlayScreen(),
           '/practice-papers': (_) => const PracticePapersScreen(),
+          '/home-work': (_) => const HomeWorkScreen(),
           '/fees': (_) => const FeesScreen(),
           '/attendance': (_) => const AttendanceScreen(),
           '/timetable': (_) => const TimetableScreen(),

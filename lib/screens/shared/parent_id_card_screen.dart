@@ -62,7 +62,7 @@ class ParentIdCardScreen extends StatelessWidget {
   }
 
   Widget _buildIdCard(AppUser parent, Student student) {
-    final parentName = parent.displayName ?? 'Parent';
+    final parentName = parent.displayName;
     final qrCodeId = 'DASTUR-QR-P-${student.grNo}-2024';
 
     return Container(

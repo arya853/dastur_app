@@ -1,9 +1,12 @@
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
 import '../../core/app_constants.dart';
 import '../../widgets/shared_widgets.dart';
 import '../../services/mock_data_service.dart';
 import '../../services/notification_service.dart';
+import '../../services/auth_service.dart';
+import '../../models/student.dart';
 
 /// Mark Attendance Screen – teacher selects class and marks each student.
 class MarkAttendanceScreen extends StatefulWidget {
@@ -32,11 +35,12 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
       appBar: const GradientAppBar(title: 'Mark Attendance', showBackButton: true),
       backgroundColor: AppColors.background,
       body: Column(children: [
-        // Class selector
         Container(
           height: 50, color: AppColors.surface,
           child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), children:
-            MockDataService.demoTeacher.assignedClasses.map((c) {
+            (Provider.of<AuthService>(context).currentUser?.role == 'teacher' 
+              ? ['VIII-A'] // Fallback or fetch from user metadata
+              : ['VIII-A']).map((c) {
               final selected = c == _selectedClass;
               return Padding(padding: const EdgeInsets.only(right: 8), child: GestureDetector(
                 onTap: () => setState(() { _selectedClass = c; _attendance.clear(); for (final s in MockDataService.allStudents.where((s) => '${s.className}-${s.division}' == c)) { _attendance[s.id] = 'present'; } }),
@@ -63,7 +67,7 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
                   boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))]),
                 child: Row(children: [
                   CircleAvatar(radius: 18, backgroundColor: AppColors.accent.withValues(alpha: 0.12),
-                    child: Text(s.name[0], style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.accent))),
+                    child: Text(s.name.isNotEmpty ? s.name[0] : 'S', style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.accent))),
                   const SizedBox(width: 12),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(s.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
@@ -182,8 +186,9 @@ class TeacherAnnouncementsScreen extends StatelessWidget {
             final notificationService = Provider.of<NotificationService>(context, listen: false);
             
             // Trigger class-specific notification
-            // For demo purposes, we use a fixed class from the demo teacher
-            final classNode = MockDataService.demoTeacher.assignedClasses.first;
+            // Try to get class from user or use default VIII-A
+            final user = Provider.of<AuthService>(context, listen: false).currentUser;
+            final classNode = 'VIII-A'; 
             final parts = classNode.split('-');
             final topic = 'class_${parts[0]}_div_${parts[1]}'.toLowerCase();
 
@@ -221,7 +226,7 @@ class TeacherStudentsScreen extends StatelessWidget {
             boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))]),
           child: Row(children: [
             CircleAvatar(radius: 20, backgroundColor: AppColors.accent.withValues(alpha: 0.12),
-              child: Text(s.name[0], style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.accent, fontSize: 16))),
+              child: Text(s.name.isNotEmpty ? s.name[0] : 'S', style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.accent, fontSize: 16))),
             const SizedBox(width: 12),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(s.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
@@ -277,7 +282,10 @@ class TeacherProfileScreen extends StatelessWidget {
   const TeacherProfileScreen({super.key});
   @override
   Widget build(BuildContext context) {
-    final t = MockDataService.demoTeacher;
+    final user = Provider.of<AuthService>(context).currentUser;
+    final displayName = user?.displayName ?? 'Teacher';
+    final email = user?.email ?? '-';
+
     return Scaffold(
       appBar: const GradientAppBar(title: 'My Profile', showBackButton: true),
       backgroundColor: AppColors.background,
@@ -286,9 +294,9 @@ class TeacherProfileScreen extends StatelessWidget {
           decoration: BoxDecoration(gradient: AppColors.primaryGradient, borderRadius: BorderRadius.circular(AppConstants.radiusXl)),
           child: Column(children: [
             CircleAvatar(radius: 40, backgroundColor: AppColors.accent.withValues(alpha: 0.2),
-              child: Text(t.name[0], style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w700, color: AppColors.accent))),
+              child: Text(displayName.isNotEmpty ? displayName[0] : 'T', style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w700, color: AppColors.accent))),
             const SizedBox(height: 12),
-            Text(t.name, style: const TextStyle(color: AppColors.textOnDark, fontSize: 20, fontWeight: FontWeight.w700)),
+            Text(displayName, style: const TextStyle(color: AppColors.textOnDark, fontSize: 20, fontWeight: FontWeight.w700)),
             const SizedBox(height: 4),
             const Text('Teacher', style: TextStyle(color: AppColors.accent, fontSize: 14, fontWeight: FontWeight.w500)),
           ]),
@@ -299,9 +307,9 @@ class TeacherProfileScreen extends StatelessWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const Text('Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.primary)),
             const SizedBox(height: 12),
-            _row(Icons.email, 'Email', t.email), _row(Icons.phone, 'Phone', t.phone),
-            _row(Icons.book, 'Subjects', t.subjects.join(', ')),
-            _row(Icons.class_, 'Classes', t.assignedClasses.join(', ')),
+            _row(Icons.email, 'Email', email), 
+            _row(Icons.book, 'Subjects', 'General'),
+            _row(Icons.class_, 'Classes', 'VIII-A'),
           ]),
         ),
       ])),

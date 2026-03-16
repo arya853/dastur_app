@@ -5,7 +5,6 @@ import '../../core/app_constants.dart';
 import '../../widgets/shared_widgets.dart';
 import '../../services/mock_data_service.dart';
 import '../../services/notification_service.dart';
-import 'package:flutter/material.dart';
 
 /// Admin Manage Students Screen.
 class AdminStudentsScreen extends StatefulWidget {

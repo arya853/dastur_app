@@ -8,19 +8,30 @@ import '../../services/auth_service.dart';
 import '../../services/mock_data_service.dart';
 import '../../services/data_seeder_service.dart';
 
+import '../../widgets/app_drawer.dart';
+
 /// Admin Dashboard Screen
 ///
 /// School-wide statistics, quick management actions,
 /// and overview of key metrics.
-class AdminDashboardScreen extends StatelessWidget {
+class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
+
+  @override
+  State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
+}
+
+class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: AppColors.background,
+      endDrawer: const AppDrawer(),
       body: CustomScrollView(
         slivers: [
           // Header
@@ -39,11 +50,14 @@ class AdminDashboardScreen extends StatelessWidget {
                   ]),
                   Row(children: [
                     const RoleBadge(role: 'admin'),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
                     GestureDetector(
-                      onTap: () async { await authService.logout(); if (context.mounted) Navigator.pushReplacementNamed(context, '/login'); },
-                      child: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-                        child: const Icon(Icons.logout, color: AppColors.textOnDark, size: 20)),
+                      onTap: () => _scaffoldKey.currentState?.openEndDrawer(),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                        child: const Icon(Icons.menu, color: AppColors.textOnDark, size: 24),
+                      ),
                     ),
                   ]),
                 ]),

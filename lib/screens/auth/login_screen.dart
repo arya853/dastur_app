@@ -91,9 +91,18 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               child: Column(
                 children: [
                   const SizedBox(height: 40),
-                  const Icon(Icons.school_rounded, size: 70, color: AppColors.accent),
+                  Image.asset(
+                    'assets/images/school_logo.png',
+                    height: 120,
+                    fit: BoxFit.contain,
+                  ),
                   const SizedBox(height: 16),
-                  const Text(AppConstants.schoolShortName, style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1.2)),
+                  const Text(AppConstants.schoolShortName,
+                      style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 1.2)),
                   const SizedBox(height: 8),
                   const Text('“Good Thoughts, Good Words, Good Deeds”', 
                     textAlign: TextAlign.center,

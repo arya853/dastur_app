@@ -23,22 +23,32 @@ class ProfileScreen extends StatelessWidget {
     }
 
     // Role-based logic for profile fetching
+    final studentData = authService.studentProfile;
+    
+    // If we have student data from login, use it. Otherwise, use StreamBuilder as fallback for refreshes/updates.
     return StreamBuilder<QuerySnapshot>(
-      stream: (currentUser.role == 'parent')
+      stream: (currentUser.role == 'parent' && studentData == null)
           ? FirebaseFirestore.instance
               .collection('students')
               .where('grNo', isEqualTo: currentUser.email.split('@')[0])
               .snapshots()
           : null,
       builder: (context, snapshot) {
-        // Fallback to Mock Data if no user-specific record is found (e.g. during seeding/demo)
-        Student student = MockDataService.demoStudent;
-        if (currentUser.role == 'parent' && snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
-          student = Student.fromMap(
-            snapshot.data!.docs.first.data() as Map<String, dynamic>,
-            snapshot.data!.docs.first.id,
-          );
+        // Prepare display data
+        Map<String, dynamic>? displayData = studentData;
+        if (displayData == null && snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+          displayData = snapshot.data!.docs.first.data() as Map<String, dynamic>;
         }
+
+        // Final fallback to mock only if absolutely NO data exists (should not happen in production)
+        if (displayData == null && !snapshot.hasData) {
+           return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+
+        final student = Student.fromMap(
+          displayData ?? MockDataService.demoStudent.toMap(),
+          snapshot.hasData && snapshot.data!.docs.isNotEmpty ? snapshot.data!.docs.first.id : 'profile-user',
+        );
 
         return Scaffold(
           appBar: const GradientAppBar(title: 'Profile', showBackButton: true),
@@ -64,7 +74,7 @@ class ProfileScreen extends StatelessWidget {
                           backgroundColor: AppColors.accent.withValues(alpha: 0.2),
                           backgroundImage: student.photoUrl != null ? NetworkImage(student.photoUrl!) : null,
                           child: student.photoUrl == null 
-                              ? Text(student.name[0], style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w700, color: AppColors.accent)) 
+                              ? Text(student.name.isNotEmpty ? student.name[0] : 'S', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w700, color: AppColors.accent)) 
                               : null,
                         ),
                         Container(
@@ -117,7 +127,7 @@ class ProfileScreen extends StatelessWidget {
                             backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                             backgroundImage: currentUser.photoUrl != null ? NetworkImage(currentUser.photoUrl!) : null,
                             child: currentUser.photoUrl == null 
-                                ? Text(student.parentDetails!['name']?[0] ?? 'P', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.primary)) 
+                                ? Text((student.parentDetails!['name']?.isNotEmpty ?? false) ? student.parentDetails!['name'][0] : 'P', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.primary)) 
                                 : null,
                           ),
                           Container(
