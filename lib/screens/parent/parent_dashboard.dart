@@ -112,31 +112,38 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Parent: ${authService.currentUser?.displayName ?? "User"}',
-                                style: const TextStyle(
-                                  color: AppColors.textOnDark,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Parent: ${authService.currentUser?.displayName ?? "User"}',
+                                  style: const TextStyle(
+                                    color: AppColors.textOnDark,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Student: $studentDisplayName',
-                                style: TextStyle(
-                                  color: AppColors.accent.withValues(alpha: 0.9),
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Student: $studentDisplayName',
+                                  style: TextStyle(
+                                    color: AppColors.accent.withValues(alpha: 0.9),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 8),
                           Row(
                             children: [
                               const RoleBadge(role: 'parent'),
+                              const SizedBox(width: 12),
+                              const NotificationBadge(),
                               const SizedBox(width: 12),
                               GestureDetector(
                                 onTap: () => _scaffoldKey.currentState?.openEndDrawer(),

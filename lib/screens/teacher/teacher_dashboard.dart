@@ -49,12 +49,23 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Good Morning,', style: TextStyle(color: AppColors.textOnDark.withValues(alpha: 0.7), fontSize: 14)),
-                    Text(user?.displayName ?? 'Teacher', style: const TextStyle(color: AppColors.textOnDark, fontSize: 20, fontWeight: FontWeight.w700)),
-                  ]),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Good Morning,', 
+                        style: TextStyle(color: AppColors.textOnDark.withValues(alpha: 0.7), fontSize: 14),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(user?.displayName ?? 'Teacher', 
+                        style: const TextStyle(color: AppColors.textOnDark, fontSize: 20, fontWeight: FontWeight.w700),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ]),
+                  ),
+                  const SizedBox(width: 8),
                   Row(children: [
                     const RoleBadge(role: 'teacher'),
+                    const SizedBox(width: 12),
+                    const NotificationBadge(),
                     const SizedBox(width: 12),
                     GestureDetector(
                       onTap: () => _scaffoldKey.currentState?.openEndDrawer(),

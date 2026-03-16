@@ -41,6 +41,7 @@ import 'screens/shared/attendance_screen.dart';
 import 'screens/shared/timetable_screen.dart';
 import 'screens/shared/profile_screen.dart';
 import 'screens/shared/parent_id_card_screen.dart';
+import 'screens/shared/notifications_screen.dart';
 
 /// Dastur School Parent Portal
 ///
@@ -104,7 +105,7 @@ class DasturParentPortalApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
         Provider(create: (_) => PhotoUploadService()),
-        Provider(create: (_) => NotificationService()),
+        ChangeNotifierProvider(create: (_) => NotificationService()),
       ],
       child: MaterialApp(
         title: AppConstants.schoolShortName,
@@ -141,6 +142,7 @@ class DasturParentPortalApp extends StatelessWidget {
           '/exam-timetable': (_) => const ExamTimetableScreen(),
           '/profile': (_) => const ProfileScreen(),
           '/parent-id-card': (_) => const ParentIdCardScreen(),
+          '/notifications': (_) => const NotificationsScreen(),
 
           // Teacher-specific screens
           '/teacher-mark-attendance': (_) => const MarkAttendanceScreen(),
