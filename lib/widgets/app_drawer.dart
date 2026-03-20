@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/app_colors.dart';
-import '../core/app_constants.dart';
+
 import '../services/auth_service.dart';
 
 /// Custom Navigation Drawer for the Dastur School App
@@ -72,7 +72,7 @@ class AppDrawer extends StatelessWidget {
                 Text(
                   email,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                     fontSize: 13,
                   ),
                 ),

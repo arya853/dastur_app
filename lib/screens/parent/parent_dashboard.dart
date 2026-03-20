@@ -70,7 +70,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
       // Topic format: class_VIII_div_A (matches teacher-side notifications)
       final className = studentData['className'] ?? studentData['CLASS'] ?? 'Unknown';
       final division = studentData['division'] ?? studentData['DIV'] ?? 'Unknown';
-      final topic = 'class_${className}_div_${division}'.toLowerCase();
+      final topic = 'class_${className}_div_$division'.toLowerCase();
       notificationService.subscribeToTopic(topic);
     }
     notificationService.subscribeToTopic('school_announcements');

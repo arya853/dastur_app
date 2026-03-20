@@ -6,7 +6,7 @@ import '../../widgets/shared_widgets.dart';
 import '../../services/mock_data_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/auth_service.dart';
-import '../../models/student.dart';
+
 
 /// Mark Attendance Screen – teacher selects class and marks each student.
 class MarkAttendanceScreen extends StatefulWidget {
@@ -187,7 +187,7 @@ class TeacherAnnouncementsScreen extends StatelessWidget {
             
             // Trigger class-specific notification
             // Try to get class from user or use default VIII-A
-            final user = Provider.of<AuthService>(context, listen: false).currentUser;
+
             final classNode = 'VIII-A'; 
             final parts = classNode.split('-');
             final topic = 'class_${parts[0]}_div_${parts[1]}'.toLowerCase();

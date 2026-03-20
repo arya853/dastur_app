@@ -45,5 +45,5 @@ app.*.map.json
 /android/app/release
 
 serviceAccountKey.json
-serviceAccountKey.json.json
 node_modules/
+FireBaseAccountKey.json

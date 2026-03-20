@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
-import '../../core/app_constants.dart';
+
 import '../../services/notification_service.dart';
 import '../../models/notification.dart';
 
@@ -82,7 +82,7 @@ class _NotificationTile extends StatelessWidget {
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        color: notification.isRead ? Colors.transparent : AppColors.primary.withOpacity(0.03),
+        color: notification.isRead ? Colors.transparent : AppColors.primary.withValues(alpha: 0.03),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -119,7 +119,7 @@ class _NotificationTile extends StatelessWidget {
                     notification.body,
                     style: TextStyle(
                       fontSize: 13,
-                      color: notification.isRead ? AppColors.textSecondary : AppColors.textPrimary.withOpacity(0.8),
+                      color: notification.isRead ? AppColors.textSecondary : AppColors.textPrimary.withValues(alpha: 0.8),
                       height: 1.4,
                     ),
                   ),
@@ -172,7 +172,7 @@ class _NotificationTile extends StatelessWidget {
       width: 44,
       height: 44,
       decoration: BoxDecoration(
-        color: iconColor.withOpacity(0.1),
+        color: iconColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Icon(iconData, color: iconColor, size: 22),

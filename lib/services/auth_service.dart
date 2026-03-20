@@ -267,14 +267,18 @@ class AuthService extends ChangeNotifier {
     try {
        QuerySnapshot globalSearch = await _db.collection('students').where('grNo', isEqualTo: grNo).get();
        if (globalSearch.docs.isNotEmpty) return globalSearch.docs.first.data() as Map<String, dynamic>;
-    } catch (e) {}
+    } catch (e) {
+      debugPrint("Search error in students collection: $e");
+    }
 
     final grades = ['grade5', 'grade6', 'grade7', 'grade8'];
     for (final grade in grades) {
       try {
         DocumentSnapshot doc = await _db.collection('students').doc(grade).collection('list').doc(grNo).get();
         if (doc.exists) return doc.data() as Map<String, dynamic>;
-      } catch (e) {}
+      } catch (e) {
+        debugPrint("Search error in grade collection $grade: $e");
+      }
     }
     return null;
   }
