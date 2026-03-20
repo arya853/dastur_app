@@ -6,8 +6,8 @@
     "CLASS": "6",
     "DIV": "A",
     "ROLL NO.": "1",
-    "PARENT 1 NAME": "Mr. Chatterjee",
-    "PARENT 2 NAME": "Mrs. Chatterjee",
+    "Father's NAME": "Mr. Chatterjee",
+    "Mother's NAME": "Mrs. Chatterjee",
     "EMAIL": "G6100@dastur.org"
   },
   {
@@ -17,8 +17,8 @@
     "CLASS": "6",
     "DIV": "A",
     "ROLL NO.": "2",
-    "PARENT 1 NAME": "Mr. Banerjee",
-    "PARENT 2 NAME": "Mrs. Banerjee",
+    "Father's NAME": "Mr. Banerjee",
+    "Mother's NAME": "Mrs. Banerjee",
     "EMAIL": "G6101@dastur.org"
   },
   {
@@ -28,8 +28,8 @@
     "CLASS": "6",
     "DIV": "A",
     "ROLL NO.": "3",
-    "PARENT 1 NAME": "Mr. Mukherjee",
-    "PARENT 2 NAME": "Mrs. Mukherjee",
+    "Father's NAME": "Mr. Mukherjee",
+    "Mother's NAME": "Mrs. Mukherjee",
     "EMAIL": "G6102@dastur.org"
   },
   {
@@ -39,8 +39,8 @@
     "CLASS": "6",
     "DIV": "A",
     "ROLL NO.": "4",
-    "PARENT 1 NAME": "Mr. Ghosh",
-    "PARENT 2 NAME": "Mrs. Ghosh",
+    "Father's NAME": "Mr. Ghosh",
+    "Mother's NAME": "Mrs. Ghosh",
     "EMAIL": "G6103@dastur.org"
   },
   {
@@ -50,8 +50,8 @@
     "CLASS": "6",
     "DIV": "A",
     "ROLL NO.": "5",
-    "PARENT 1 NAME": "Mr. Saxena",
-    "PARENT 2 NAME": "Mrs. Saxena",
+    "Father's NAME": "Mr. Saxena",
+    "Mother's NAME": "Mrs. Saxena",
     "EMAIL": "G6104@dastur.org"
   },
   {
@@ -61,8 +61,8 @@
     "CLASS": "6",
     "DIV": "A",
     "ROLL NO.": "6",
-    "PARENT 1 NAME": "Mr. Agarwal",
-    "PARENT 2 NAME": "Mrs. Agarwal",
+    "Father's NAME": "Mr. Agarwal",
+    "Mother's NAME": "Mrs. Agarwal",
     "EMAIL": "G6105@dastur.org"
   },
   {
@@ -72,8 +72,8 @@
     "CLASS": "6",
     "DIV": "A",
     "ROLL NO.": "7",
-    "PARENT 1 NAME": "Mr. Bansal",
-    "PARENT 2 NAME": "Mrs. Bansal",
+    "Father's NAME": "Mr. Bansal",
+    "Mother's NAME": "Mrs. Bansal",
     "EMAIL": "G6106@dastur.org"
   },
   {
@@ -83,8 +83,8 @@
     "CLASS": "6",
     "DIV": "A",
     "ROLL NO.": "8",
-    "PARENT 1 NAME": "Mr. Chopra",
-    "PARENT 2 NAME": "Mrs. Chopra",
+    "Father's NAME": "Mr. Chopra",
+    "Mother's NAME": "Mrs. Chopra",
     "EMAIL": "G6107@dastur.org"
   },
   {
@@ -94,8 +94,8 @@
     "CLASS": "6",
     "DIV": "A",
     "ROLL NO.": "9",
-    "PARENT 1 NAME": "Mr. Arora",
-    "PARENT 2 NAME": "Mrs. Arora",
+    "Father's NAME": "Mr. Arora",
+    "Mother's NAME": "Mrs. Arora",
     "EMAIL": "G6108@dastur.org"
   },
   {
@@ -105,8 +105,8 @@
     "CLASS": "6",
     "DIV": "A",
     "ROLL NO.": "10",
-    "PARENT 1 NAME": "Mr. Sethi",
-    "PARENT 2 NAME": "Mrs. Sethi",
+    "Father's NAME": "Mr. Sethi",
+    "Mother's NAME": "Mrs. Sethi",
     "EMAIL": "G6109@dastur.org"
   },
   {
@@ -116,8 +116,8 @@
     "CLASS": "6",
     "DIV": "B",
     "ROLL NO.": "1",
-    "PARENT 1 NAME": "Mr. Menon",
-    "PARENT 2 NAME": "Mrs. Menon",
+    "Father's NAME": "Mr. Menon",
+    "Mother's NAME": "Mrs. Menon",
     "EMAIL": "G6110@dastur.org"
   },
   {
@@ -127,8 +127,8 @@
     "CLASS": "6",
     "DIV": "B",
     "ROLL NO.": "2",
-    "PARENT 1 NAME": "Mr. Nambiar",
-    "PARENT 2 NAME": "Mrs. Nambiar",
+    "Father's NAME": "Mr. Nambiar",
+    "Mother's NAME": "Mrs. Nambiar",
     "EMAIL": "G6111@dastur.org"
   },
   {
@@ -138,8 +138,8 @@
     "CLASS": "6",
     "DIV": "B",
     "ROLL NO.": "3",
-    "PARENT 1 NAME": "Mr. Bhat",
-    "PARENT 2 NAME": "Mrs. Bhat",
+    "Father's NAME": "Mr. Bhat",
+    "Mother's NAME": "Mrs. Bhat",
     "EMAIL": "G6112@dastur.org"
   },
   {
@@ -149,8 +149,8 @@
     "CLASS": "6",
     "DIV": "B",
     "ROLL NO.": "4",
-    "PARENT 1 NAME": "Mr. Shetty",
-    "PARENT 2 NAME": "Mrs. Shetty",
+    "Father's NAME": "Mr. Shetty",
+    "Mother's NAME": "Mrs. Shetty",
     "EMAIL": "G6113@dastur.org"
   },
   {
@@ -160,8 +160,8 @@
     "CLASS": "6",
     "DIV": "B",
     "ROLL NO.": "5",
-    "PARENT 1 NAME": "Mr. Naidu",
-    "PARENT 2 NAME": "Mrs. Naidu",
+    "Father's NAME": "Mr. Naidu",
+    "Mother's NAME": "Mrs. Naidu",
     "EMAIL": "G6114@dastur.org"
   },
   {
@@ -171,8 +171,8 @@
     "CLASS": "6",
     "DIV": "B",
     "ROLL NO.": "6",
-    "PARENT 1 NAME": "Mr. Yadav",
-    "PARENT 2 NAME": "Mrs. Yadav",
+    "Father's NAME": "Mr. Yadav",
+    "Mother's NAME": "Mrs. Yadav",
     "EMAIL": "G6115@dastur.org"
   },
   {
@@ -182,8 +182,8 @@
     "CLASS": "6",
     "DIV": "B",
     "ROLL NO.": "7",
-    "PARENT 1 NAME": "Mr. Tripathi",
-    "PARENT 2 NAME": "Mrs. Tripathi",
+    "Father's NAME": "Mr. Tripathi",
+    "Mother's NAME": "Mrs. Tripathi",
     "EMAIL": "G6116@dastur.org"
   },
   {
@@ -193,8 +193,8 @@
     "CLASS": "6",
     "DIV": "B",
     "ROLL NO.": "8",
-    "PARENT 1 NAME": "Mr. Tiwari",
-    "PARENT 2 NAME": "Mrs. Tiwari",
+    "Father's NAME": "Mr. Tiwari",
+    "Mother's NAME": "Mrs. Tiwari",
     "EMAIL": "G6117@dastur.org"
   },
   {
@@ -204,8 +204,8 @@
     "CLASS": "6",
     "DIV": "B",
     "ROLL NO.": "9",
-    "PARENT 1 NAME": "Mr. Dubey",
-    "PARENT 2 NAME": "Mrs. Dubey",
+    "Father's NAME": "Mr. Dubey",
+    "Mother's NAME": "Mrs. Dubey",
     "EMAIL": "G6118@dastur.org"
   },
   {
@@ -215,8 +215,8 @@
     "CLASS": "6",
     "DIV": "B",
     "ROLL NO.": "10",
-    "PARENT 1 NAME": "Mr. Pandey",
-    "PARENT 2 NAME": "Mrs. Pandey",
+    "Father's NAME": "Mr. Pandey",
+    "Mother's NAME": "Mrs. Pandey",
     "EMAIL": "G6119@dastur.org"
   }
 ]

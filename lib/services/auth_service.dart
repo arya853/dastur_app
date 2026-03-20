@@ -104,11 +104,31 @@ class AuthService extends ChangeNotifier {
              final grNo = email.split('@').first;
              _studentProfile = await _findStudentByGr(grNo);
              if (_studentProfile != null) {
+                // Priority: Mother's Name, Father's Name, Parent 1/2, parentName, etc.
+                final pName = _studentProfile!["MOTHER'S NAME"] ??
+                             _studentProfile!["Mother's NAME"] ??
+                             _studentProfile!["Mother's Name"] ??
+                             _studentProfile!["MOTHER NAME"] ??
+                             _studentProfile!["Father's NAME"] ??
+                             _studentProfile!["FATHER'S NAME"] ??
+                             _studentProfile!["Father's Name"] ??
+                             _studentProfile!["FATHER NAME"] ??
+                             _studentProfile!['Parent 1'] ?? 
+                             _studentProfile!['parent 1'] ??
+                             _studentProfile!['PARENT 1 NAME'] ??
+                             _studentProfile!['parent 2 name'] ??
+                             _studentProfile!['Parent 2 Name'] ??
+                             _studentProfile!['PARENT 2 NAME'] ??
+                             _studentProfile!['parentName'] ?? 
+                             _studentProfile!['parentDetails']?['name'] ?? 
+                             _studentProfile!['PARENT DETAILS']?['NAME'] ?? 
+                             'Parent';
+                             
                 _currentUser = AppUser(
                   uid: uid,
                   email: email,
                   role: 'parent',
-                  displayName: _studentProfile!['NAME'] ?? _studentProfile!['name'] ?? 'Parent',
+                  displayName: pName,
                 );
              }
           }
@@ -117,11 +137,14 @@ class AuthService extends ChangeNotifier {
 
       // Final fallback if logged in but no profile found anywhere
       if (_currentUser == null && _auth.currentUser != null) {
+         final email = _auth.currentUser?.email ?? '';
+         final isAdmin = email == 'admin1@dastur.org';
+         
          _currentUser = AppUser(
            uid: uid,
-           email: _auth.currentUser!.email ?? '',
-           displayName: 'User',
-           role: 'parent', // Default to parent
+           email: email,
+           displayName: isAdmin ? 'Administrator' : 'User',
+           role: isAdmin ? 'admin' : 'parent',
          );
       }
       
@@ -156,11 +179,31 @@ class AuthService extends ChangeNotifier {
           final studentData = await _findStudentByGr(grNo);
           
           if (studentData != null && (password == 'dastur123' || password == grNo)) {
-            _studentProfile = studentData;
+             _studentProfile = studentData;
+            // Priority: Mother's Name, Father's Name, Parent 1/2, parentName, etc.
+            final pName = studentData["MOTHER'S NAME"] ??
+                         studentData["Mother's NAME"] ??
+                         studentData["Mother's Name"] ??
+                         studentData["MOTHER NAME"] ??
+                         studentData["Father's NAME"] ??
+                         studentData["FATHER'S NAME"] ??
+                         studentData["Father's Name"] ??
+                         studentData["FATHER NAME"] ??
+                         studentData['Parent 1'] ?? 
+                         studentData['parent 1'] ??
+                         studentData['PARENT 1 NAME'] ??
+                         studentData['parent 2 name'] ??
+                         studentData['Parent 2 Name'] ??
+                         studentData['PARENT 2 NAME'] ??
+                         studentData['parentName'] ?? 
+                         studentData['parentDetails']?['name'] ?? 
+                         studentData['PARENT DETAILS']?['NAME'] ?? 
+                         'Parent';
+                         
             _currentUser = AppUser(
               uid: 'manual-${studentData['GR NO.'] ?? studentData['grNo']}',
               email: studentData['EMAIL'] ?? studentData['email'] ?? '$grNo@dastur.org',
-              displayName: studentData['NAME'] ?? studentData['name'] ?? 'Parent',
+              displayName: pName,
               role: 'parent',
             );
             await _saveSession();

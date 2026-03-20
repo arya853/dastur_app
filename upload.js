@@ -30,8 +30,18 @@ async function uploadStudents(data, grade) {
 
 }
 
-// Upload each grade
-uploadStudents(grade5, "grade5");
-uploadStudents(grade6, "grade6");
-uploadStudents(grade7, "grade7");
-uploadStudents(grade8, "grade8");
+// Main function to run everything
+async function main() {
+  console.log("Starting upload...");
+  try {
+    await uploadStudents(grade5, "grade5");
+    await uploadStudents(grade6, "grade6");
+    await uploadStudents(grade7, "grade7");
+    await uploadStudents(grade8, "grade8");
+    console.log("All grades uploaded successfully!");
+  } catch (error) {
+    console.error("Upload failed:", error);
+  }
+}
+
+main();
