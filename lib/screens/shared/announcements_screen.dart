@@ -35,7 +35,6 @@ class AnnouncementsScreen extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('announcements')
-            .where('isActive', isEqualTo: true)
             .orderBy('date', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
@@ -53,6 +52,8 @@ class AnnouncementsScreen extends StatelessWidget {
           for (var doc in docs) {
             final data = doc.data() as Map<String, dynamic>;
             final ann = Announcement.fromMap(data, doc.id);
+            
+            if (!ann.isActive && userRole != 'admin') continue; // Manage active filter manually
             
             // Overrides for absolute admins
             if (userRole == 'admin') {

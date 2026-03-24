@@ -329,7 +329,6 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('announcements')
-          .where('isActive', isEqualTo: true)
           .orderBy('date', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
@@ -347,6 +346,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
           final data = doc.data() as Map<String, dynamic>;
           final ann = Announcement.fromMap(data, doc.id);
           
+          if (!ann.isActive) continue; // Filter inactive announcements manually
           if (ann.targetRole != 'all' && ann.targetRole != '${userRole}s') continue;
           if (ann.targetClass != null && ann.targetClass != userClass) continue;
 
