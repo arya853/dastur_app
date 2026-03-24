@@ -29,15 +29,16 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
   int _currentPage = 0;
   int _announcementCount = 5; // Show top 5 recent announcements
   int _actualCount = 0; // Actual filtered count for the timer
+  late Stream<QuerySnapshot> _announcementsStream;
 
   @override
   void initState() {
     super.initState();
-    // Auto-subscribe to student's class topic for notifications
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _subscribeToStudentTopic();
-    });
-    
+    _announcementsStream = FirebaseFirestore.instance
+        .collection('announcements')
+        .orderBy('date', descending: true)
+        .snapshots();
+        
     _pageController = PageController(initialPage: 0);
     _startCarouselTimer();
   }
@@ -328,10 +329,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
     }
 
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('announcements')
-          .orderBy('date', descending: true)
-          .snapshots(),
+      stream: _announcementsStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const SizedBox(height: 90, child: Center(child: CircularProgressIndicator()));
