@@ -31,6 +31,7 @@ import 'screens/teacher/teacher_notification_screen.dart';
 // Screens - Admin
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/admin/admin_screens.dart';
+import 'screens/admin/admin_create_announcement_screen.dart';
 
 // Screens - Shared (used across roles)
 import 'screens/shared/academic_calendar_screen.dart';
@@ -183,6 +184,7 @@ class DasturParentPortalApp extends StatelessWidget {
           '/admin-teachers': (_) => const AdminTeachersScreen(),
           '/admin-parents': (_) => const AdminParentsScreen(),
           '/admin-announcements': (_) => const AdminAnnouncementsScreen(),
+          '/admin-create-announcement': (_) => const AdminCreateAnnouncementScreen(),
           '/admin-calendar': (_) => const AdminCalendarScreen(),
           '/admin-timetable': (_) => const AdminTimetableScreen(),
           '/admin-fees': (_) => const AdminFeesScreen(),

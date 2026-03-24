@@ -4,6 +4,8 @@ import '../../core/app_colors.dart';
 import '../../core/app_constants.dart';
 import '../../widgets/shared_widgets.dart';
 import '../../services/mock_data_service.dart';
+import '../../models/announcement.dart';
+import '../../services/admin_announcement_service.dart';
 
 /// Admin Manage Students Screen.
 class AdminStudentsScreen extends StatefulWidget {
@@ -145,32 +147,92 @@ class AdminParentsScreen extends StatelessWidget {
 /// Admin Announcements Screen – school-wide CRUD.
 class AdminAnnouncementsScreen extends StatelessWidget {
   const AdminAnnouncementsScreen({super.key});
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const GradientAppBar(title: 'Manage Announcements', showBackButton: true),
       backgroundColor: AppColors.background,
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAnnouncementDialog(context),
+        onPressed: () => Navigator.pushNamed(context, '/admin-create-announcement'),
+        backgroundColor: AppColors.primary,
         child: const Icon(Icons.add),
       ),
-      body: ListView.builder(padding: const EdgeInsets.all(16), itemCount: MockDataService.announcements.length, itemBuilder: (context, i) {
-        final a = MockDataService.announcements[i];
-        return Container(margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppConstants.radiusMd)),
-          child: Row(children: [
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(a.title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-              Text('${a.date.day}/${a.date.month}/${a.date.year} • ${a.type}', style: const TextStyle(fontSize: 11, color: AppColors.textSubtle)),
-            ])),
-            IconButton(icon: const Icon(Icons.edit, size: 18, color: AppColors.accent), onPressed: () => _showFormDialog(context, 'Edit Announcement')),
-            IconButton(icon: const Icon(Icons.delete, size: 18, color: AppColors.error), onPressed: () => _confirmDelete(context, a.title, () {})),
-          ]),
-        );
-      }),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('announcements').orderBy('date', descending: true).snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          final docs = snapshot.data?.docs ?? [];
+          if (docs.isEmpty) {
+            return const EmptyState(icon: Icons.campaign_outlined, message: 'No announcements found.');
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16), 
+            itemCount: docs.length, 
+            itemBuilder: (context, i) {
+              final data = docs[i].data() as Map<String, dynamic>;
+              final a = Announcement.fromMap(data, docs[i].id);
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10), 
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: a.isActive ? AppColors.surface : Colors.grey.shade200, 
+                  borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                  border: Border.all(color: a.isActive ? Colors.transparent : Colors.grey.shade400)
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start, 
+                        children: [
+                          Text(
+                            a.title, 
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600, 
+                              fontSize: 14,
+                              decoration: a.isActive ? TextDecoration.none : TextDecoration.lineThrough,
+                              color: a.isActive ? AppColors.textPrimary : Colors.grey.shade600,
+                            )
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${a.date.day}/${a.date.month}/${a.date.year} • ${a.type.toUpperCase()} • To: ${a.targetRole.toUpperCase()}${a.targetClass != null ? ' (Grade ${a.targetClass})' : ''}', 
+                            style: const TextStyle(fontSize: 11, color: AppColors.textSubtle)
+                          ),
+                        ]
+                      )
+                    ),
+                    Switch(
+                      value: a.isActive,
+                      activeColor: AppColors.accent,
+                      onChanged: (val) {
+                        AdminAnnouncementService().toggleActive(a.id, !val);
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete, size: 18, color: AppColors.error), 
+                      onPressed: () => _confirmDelete(context, a.title, () {
+                        AdminAnnouncementService().deleteAnnouncement(a.id);
+                      })
+                    ),
+                  ]
+                ),
+              );
+            }
+          );
+        }
+      ),
     );
   }
 }
+
 
 /// Admin Calendar Events Screen.
 class AdminCalendarScreen extends StatelessWidget {

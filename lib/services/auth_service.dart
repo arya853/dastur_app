@@ -92,8 +92,23 @@ class AuthService extends ChangeNotifier {
       if (doc.exists) {
         _currentUser = AppUser.fromMap(doc.data() as Map<String, dynamic>, doc.id);
       } else {
-        // 2. Search in teachers (ID is now the email)
-        final email = _auth.currentUser?.email;
+      // 1.5 Search in admin collection (by email)
+      final email = _auth.currentUser?.email;
+      if (email != null && _currentUser == null) {
+        final adminDoc = await _db.collection('admin').doc(email.toLowerCase()).get();
+        if (adminDoc.exists) {
+          final data = adminDoc.data() as Map<String, dynamic>;
+          _currentUser = AppUser(
+            uid: uid,
+            email: email,
+            role: 'admin',
+            displayName: data['NAME'] ?? data['name'] ?? 'Administrator',
+          );
+        }
+      }
+
+      // 2. Search in teachers (ID is now the email)
+      if (_currentUser == null) {
         DocumentSnapshot? teacherDoc;
         
         if (email != null) {
@@ -151,11 +166,12 @@ class AuthService extends ChangeNotifier {
           }
         }
       }
+    }
 
       // Final fallback if logged in but no profile found anywhere
       if (_currentUser == null && _auth.currentUser != null) {
         final email = _auth.currentUser?.email ?? '';
-        final isAdmin = email == 'admin1@dastur.org';
+        final isAdmin = email == 'admin1@dastur.org' || email == 'admin@dastur.org';
         _currentUser = AppUser(
           uid: uid,
           email: email,
@@ -224,6 +240,7 @@ class AuthService extends ChangeNotifier {
               role: 'parent',
             );
             await _saveSession();
+            await _updateFcmToken(); // Ensure token is requested and saved on manual login
             _isLoading = false;
             notifyListeners();
             return true;
@@ -305,7 +322,7 @@ class AuthService extends ChangeNotifier {
           final docRef = _db.collection('students').doc(grade).collection('DIV_A').doc(grNo);
           final snap = await docRef.get();
           if (snap.exists) {
-            await docRef.update({'fcmToken': token});
+            await docRef.set({'fcmToken': token}, SetOptions(merge: true));
             break;
           }
         }
