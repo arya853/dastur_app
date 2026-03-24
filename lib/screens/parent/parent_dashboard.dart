@@ -347,14 +347,28 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
           final data = doc.data() as Map<String, dynamic>;
           final ann = Announcement.fromMap(data, doc.id);
           
-          if (!ann.isActive) continue; // Filter inactive announcements manually
-          if (ann.targetRole != 'all' && ann.targetRole != '${userRole}s') continue;
+          if (!ann.isActive) continue; 
+          
+          // Parents see announcements targeted to 'all' or 'students'
+          bool roleMatch = ann.targetRole == 'all' || 
+                          ann.targetRole == 'students' || 
+                          ann.targetRole == 'parents' ||
+                          ann.targetRole == 'parent';
+                          
+          if (!roleMatch) continue;
           if (ann.targetClass != null && ann.targetClass != userClass) continue;
 
           allVisible.add(ann);
         }
 
         final announcements = allVisible.take(_announcementCount).toList();
+        
+        // Update actual count for the timer in a safe way
+        if (_actualCount != announcements.length) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _actualCount = announcements.length);
+          });
+        }
         _actualCount = announcements.length; // Sync actual count for the timer
 
         if (announcements.isEmpty) {

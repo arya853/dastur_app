@@ -53,23 +53,17 @@ class AnnouncementsScreen extends StatelessWidget {
             final data = doc.data() as Map<String, dynamic>;
             final ann = Announcement.fromMap(data, doc.id);
             
-            if (!ann.isActive && userRole != 'admin') continue; // Manage active filter manually
+            if (!ann.isActive && userRole != 'admin') continue; 
+
+            // Parents see announcements targeted to 'all' or 'students'
+            bool roleMatch = userRole == 'admin' || 
+                            ann.targetRole == 'all' || 
+                            ann.targetRole == '${userRole}s' || 
+                            ann.targetRole == userRole ||
+                            (userRole == 'parent' && ann.targetRole == 'students');
             
-            // Overrides for absolute admins
-            if (userRole == 'admin') {
-              visibleAnnouncements.add(ann);
-              continue;
-            }
-
-            // Role filtering
-            if (ann.targetRole != 'all' && ann.targetRole != '${userRole}s') {
-              continue;
-            }
-
-            // Class filtering
-            if (ann.targetClass != null && ann.targetClass != userClass) {
-              continue;
-            }
+            if (!roleMatch) continue;
+            if (ann.targetClass != null && ann.targetClass != userClass && userRole != 'admin') continue;
 
             visibleAnnouncements.add(ann);
           }
