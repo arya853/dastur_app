@@ -27,7 +27,8 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
   late PageController _pageController;
   Timer? _carouselTimer;
   int _currentPage = 0;
-  final int _announcementCount = 3; // Show top 3
+  int _announcementCount = 5; // Show top 5 recent announcements
+  int _actualCount = 0; // Actual filtered count for the timer
 
   @override
   void initState() {
@@ -44,8 +45,8 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
   void _startCarouselTimer() {
     _carouselTimer?.cancel();
     _carouselTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (_pageController.hasClients) {
-        _currentPage = (_currentPage + 1) % _announcementCount;
+      if (_pageController.hasClients && _actualCount > 0) {
+        _currentPage = (_currentPage + 1) % _actualCount;
         _pageController.animateToPage(
           _currentPage,
           duration: const Duration(milliseconds: 800),
@@ -354,6 +355,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
         }
 
         final announcements = allVisible.take(_announcementCount).toList();
+        _actualCount = announcements.length; // Sync actual count for the timer
 
         if (announcements.isEmpty) {
           return Container(
