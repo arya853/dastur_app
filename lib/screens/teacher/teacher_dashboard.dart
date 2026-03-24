@@ -8,6 +8,7 @@ import '../../services/auth_service.dart';
 
 
 import '../../widgets/app_drawer.dart';
+import '../../widgets/announcement_carousel.dart';
 
 /// Teacher Dashboard Screen
 ///
@@ -92,7 +93,15 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
               ]),
             )),
           )),
-          const SliverToBoxAdapter(child: SectionHeader(title: 'Quick Actions')),
+          // ── Announcement Carousel ──
+          SliverToBoxAdapter(
+            child: AnnouncementCarousel(
+              userRole: authService.currentUser?.role ?? 'teacher',
+              userClass: authService.teacherProfile?['CLASS']?.toString(), // Optional: teachers might be curious about their class news
+            ),
+          ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 16)),
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverGrid.count(
