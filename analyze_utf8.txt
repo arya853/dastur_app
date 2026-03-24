@@ -1,0 +1,50 @@
+﻿Analyzing dastur_app...                                         
+
+  error - The method 'login' isn't defined for the type 'AuthService' - lib\screens\auth\login_screen.dart:61:41 - undefined_method
+  error - The method '_loadSession' isn't defined for the type 'AuthService' - lib\services\auth_service.dart:32:11 - undefined_method
+  error - The method '_clearSession' isn't defined for the type 'AuthService' - lib\services\auth_service.dart:48:15 - undefined_method
+  error - The method '_saveSession' isn't defined for the type 'AuthService' - lib\services\auth_service.dart:55:17 - undefined_method
+  error - The method '_saveSession' isn't defined for the type 'AuthService' - lib\services\auth_service.dart:67:15 - undefined_method
+  error - A try block must be followed by an 'on', 'catch', or 'finally' clause - lib\services\auth_service.dart:86:5 - missing_catch_or_finally
+warning - The operand can't be 'null', so the condition is always 'true' - lib\services\auth_service.dart:124:21 - unnecessary_null_comparison
+  error - Local variable '_findStudentByGr' can't be referenced before it is declared - lib\services\auth_service.dart:126:38 - referenced_before_declaration
+  error - Local variable '_findStudentByGr' can't be referenced before it is declared - lib\services\auth_service.dart:175:34 - referenced_before_declaration
+  error - 'catch' can't be used as an identifier because it's a keyword - lib\services\auth_service.dart:178:7 - expected_identifier_but_got_keyword
+  error - The method 'catch' isn't defined for the type 'AuthService' - lib\services\auth_service.dart:178:7 - undefined_method
+  error - Undefined name 'e' - lib\services\auth_service.dart:178:14 - undefined_identifier
+  error - Expected to find ';' - lib\services\auth_service.dart:178:15 - expected_token
+  error - Undefined name 'e' - lib\services\auth_service.dart:179:49 - undefined_identifier
+warning - The declaration 'login' isn't referenced - lib\services\auth_service.dart:186:16 - unused_element
+  error - Local variable '_findStudentByGr' can't be referenced before it is declared - lib\services\auth_service.dart:201:37 - referenced_before_declaration
+  error - Local variable '_saveSession' can't be referenced before it is declared - lib\services\auth_service.dart:231:19 - referenced_before_declaration
+  error - Local variable '_saveSession' can't be referenced before it is declared - lib\services\auth_service.dart:254:17 - referenced_before_declaration
+  error - Local variable '_saveSession' can't be referenced before it is declared - lib\services\auth_service.dart:279:13 - referenced_before_declaration
+  error - Local variable '_updateFcmToken' can't be referenced before it is declared - lib\services\auth_service.dart:280:13 - referenced_before_declaration
+   info - The local variable '_updateFcmToken' starts with an underscore - lib\services\auth_service.dart:291:16 - no_leading_underscores_for_local_identifiers
+   info - The local variable '_saveSession' starts with an underscore - lib\services\auth_service.dart:325:16 - no_leading_underscores_for_local_identifiers
+   info - The local variable '_loadSession' starts with an underscore - lib\services\auth_service.dart:341:16 - no_leading_underscores_for_local_identifiers
+warning - The declaration '_loadSession' isn't referenced - lib\services\auth_service.dart:341:16 - unused_element
+   info - The local variable '_clearSession' starts with an underscore - lib\services\auth_service.dart:363:16 - no_leading_underscores_for_local_identifiers
+warning - The declaration '_clearSession' isn't referenced - lib\services\auth_service.dart:363:16 - unused_element
+   info - The local variable '_findStudentByGr' starts with an underscore - lib\services\auth_service.dart:372:33 - no_leading_underscores_for_local_identifiers
+warning - This function has a nullable return type of 'FutureOr<Map<String, dynamic>?>', but ends without returning a value - lib\services\auth_service.dart:372:33 - body_might_complete_normally_nullable
+  error - A try block must be followed by an 'on', 'catch', or 'finally' clause - lib\services\auth_service.dart:373:6 - missing_catch_or_finally
+  error - Expected to find '}' - lib\services\auth_service.dart:376:5 - expected_token
+  error - 'catch' can't be used as an identifier because it's a keyword - lib\services\auth_service.dart:376:7 - expected_identifier_but_got_keyword
+  error - The method 'catch' isn't defined for the type 'AuthService' - lib\services\auth_service.dart:376:7 - undefined_method
+  error - Undefined name 'e' - lib\services\auth_service.dart:376:14 - undefined_identifier
+  error - Expected to find ';' - lib\services\auth_service.dart:376:15 - expected_token
+  error - Undefined name 'e' - lib\services\auth_service.dart:377:57 - undefined_identifier
+  error - Undefined name 'grNo' - lib\services\auth_service.dart:383:99 - undefined_identifier
+  error - A value of type 'Map<String, dynamic>' can't be returned from the method '_fetchUserProfile' because it has a return type of 'Future<void>' - lib\services\auth_service.dart:384:32 - return_of_invalid_type
+   info - Don't return 'null' from a method with a return type of 'void' - lib\services\auth_service.dart:389:5 - avoid_returning_null_for_void
+  error - The method '_clearSession' isn't defined for the type 'AuthService' - lib\services\auth_service.dart:406:11 - undefined_method
+   info - Don't invoke 'print' in production code - lib\services\data_seeder.dart:7:5 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\data_seeder.dart:13:5 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\data_seeder.dart:20:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\data_seeder.dart:24:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\data_seeder.dart:50:11 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\data_seeder.dart:53:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\data_seeder.dart:56:5 - avoid_print
+warning - The value of the local variable 'fcmCount' isn't used - lib\services\teacher_notification_service.dart:61:11 - unused_local_variable
+

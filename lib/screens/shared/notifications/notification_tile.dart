@@ -1,84 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../core/app_colors.dart';
+import '../../../../core/app_colors.dart';
+import '../../../../models/notification.dart';
+import '../../../../controllers/notification_controller.dart';
 
-import '../../services/notification_service.dart';
-import '../../models/notification.dart';
-
-class NotificationsScreen extends StatelessWidget {
-  const NotificationsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final notificationService = Provider.of<NotificationService>(context);
-    final notifications = notificationService.notifications;
-
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Notifications', style: TextStyle(fontWeight: FontWeight.w700)),
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textPrimary,
-        elevation: 0,
-        actions: [
-          if (notifications.any((n) => !n.isRead))
-            TextButton(
-              onPressed: () => notificationService.markAllAsRead(),
-              child: const Text('Mark all as read', style: TextStyle(color: AppColors.primary)),
-            ),
-        ],
-      ),
-      body: notifications.isEmpty
-          ? _buildEmptyState()
-          : ListView.separated(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              itemCount: notifications.length,
-              separatorBuilder: (context, index) => const Divider(height: 1, indent: 72),
-              itemBuilder: (context, index) {
-                final notification = notifications[index];
-                return _NotificationTile(notification: notification);
-              },
-            ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.notifications_none_outlined, size: 80, color: Colors.grey.shade300),
-          const SizedBox(height: 16),
-          Text(
-            'No notifications yet',
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'We\'ll notify you when something important happens.',
-            style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NotificationTile extends StatelessWidget {
+class NotificationTile extends StatelessWidget {
   final AppNotification notification;
+  final String grade;
+  final String grNo;
+  final NotificationController controller;
 
-  const _NotificationTile({required this.notification});
+  const NotificationTile({
+    super.key,
+    required this.notification,
+    required this.grade,
+    required this.grNo,
+    required this.controller,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final notificationService = Provider.of<NotificationService>(context, listen: false);
-
     return InkWell(
       onTap: () {
         if (!notification.isRead) {
-          notificationService.markAsRead(notification.id);
+          controller.markAsRead(grade, grNo, notification.id);
         }
-        // Handle navigation based on type if needed
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -116,7 +61,7 @@ class _NotificationTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    notification.body,
+                    notification.message,
                     style: TextStyle(
                       fontSize: 13,
                       color: notification.isRead ? AppColors.textSecondary : AppColors.textPrimary.withValues(alpha: 0.8),

@@ -100,8 +100,8 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
               children: [
                 DashboardTile(icon: Icons.fact_check, label: 'Mark\nAttendance', iconColor: AppColors.tileIconColors[8],
                   onTap: () => Navigator.pushNamed(context, '/teacher-mark-attendance')),
-                DashboardTile(icon: Icons.campaign, label: 'Post\nAnnouncement', iconColor: AppColors.tileIconColors[1],
-                  onTap: () => Navigator.pushNamed(context, '/teacher-announcements')),
+                DashboardTile(icon: Icons.campaign, label: 'Send\nNotification', iconColor: AppColors.tileIconColors[1],
+                  onTap: () => Navigator.pushNamed(context, '/teacher-send-notification')),
                 DashboardTile(icon: Icons.menu_book, label: 'Update\nSyllabus', iconColor: AppColors.tileIconColors[3],
                   onTap: () => Navigator.pushNamed(context, '/syllabus')),
                 DashboardTile(icon: Icons.quiz, label: 'Create\nQuiz', iconColor: AppColors.tileIconColors[5],

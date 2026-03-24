@@ -7,7 +7,6 @@ import '../../widgets/shared_widgets.dart';
 import '../../services/auth_service.dart';
 import '../../services/mock_data_service.dart';
 import 'package:provider/provider.dart';
-import '../../services/notification_service.dart';
 import '../../widgets/app_drawer.dart';
 
 /// Parent Dashboard Screen
@@ -62,18 +61,8 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
   }
 
   void _subscribeToStudentTopic() {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final studentData = authService.studentProfile;
-    final notificationService = Provider.of<NotificationService>(context, listen: false);
-    
-    if (studentData != null) {
-      // Topic format: class_VIII_div_A (matches teacher-side notifications)
-      final className = studentData['className'] ?? studentData['CLASS'] ?? 'Unknown';
-      final division = studentData['division'] ?? studentData['DIV'] ?? 'Unknown';
-      final topic = 'class_${className}_div_$division'.toLowerCase();
-      notificationService.subscribeToTopic(topic);
-    }
-    notificationService.subscribeToTopic('school_announcements');
+    // Note: Notification listening is now handled by StreamBuilders in
+    // NotificationScreen and NotificationBadge.
   }
 
   @override

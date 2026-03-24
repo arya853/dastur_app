@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/app_colors.dart';
-import '../services/notification_service.dart';
+import '../controllers/notification_controller.dart';
+import '../services/auth_service.dart';
 
 /// A notification icon with a red dot badge for unread notifications.
 class NotificationBadge extends StatelessWidget {
@@ -9,46 +10,71 @@ class NotificationBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // We listen to changes in NotificationService to update the badge
-    final notificationService = Provider.of<NotificationService>(context);
-    final unreadCount = notificationService.unreadCount;
+    final controller = Provider.of<NotificationController>(context, listen: false);
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final studentData = authService.studentProfile;
+    
+    if (studentData == null) {
+      return _buildIconOnly(context);
+    }
+    
+    final className = studentData['className'] ?? studentData['CLASS'] ?? 'Unknown';
+    String grade = 'grade5';
+    if (className == 'V') grade = 'grade5';
+    if (className == 'VI') grade = 'grade6';
+    if (className == 'VII') grade = 'grade7';
+    if (className == 'VIII') grade = 'grade8';
+    
+    final grNo = studentData['GR NO.'] ?? studentData['grNo'] ?? (authService.currentUser?.email ?? '').split('@').first;
 
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        GestureDetector(
-          onTap: () => Navigator.pushNamed(context, '/notifications'),
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.notifications_none_outlined,
-              color: AppColors.textOnDark,
-              size: 24,
-            ),
-          ),
+        _buildIconOnly(context),
+        StreamBuilder<int>(
+          stream: controller.getUnreadCountStream(grade, grNo),
+          builder: (context, snapshot) {
+            final unreadCount = snapshot.data ?? 0;
+            if (unreadCount > 0) {
+              return Positioned(
+                right: 2,
+                top: 2,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: AppColors.error,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 10,
+                    minHeight: 10,
+                  ),
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          },
         ),
-        if (unreadCount > 0)
-          Positioned(
-            right: 2,
-            top: 2,
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: AppColors.error,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 1.5),
-              ),
-              constraints: const BoxConstraints(
-                minWidth: 10,
-                minHeight: 10,
-              ),
-            ),
-          ),
       ],
+    );
+  }
+
+  Widget _buildIconOnly(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, '/notifications'),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const Icon(
+          Icons.notifications_none_outlined,
+          color: AppColors.textOnDark,
+          size: 24,
+        ),
+      ),
     );
   }
 }

@@ -1,0 +1,11 @@
+﻿Analyzing dastur_app...                                         
+
+   info - Don't invoke 'print' in production code - lib\services\data_seeder.dart:7:5 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\data_seeder.dart:13:5 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\data_seeder.dart:20:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\data_seeder.dart:24:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\data_seeder.dart:50:11 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\data_seeder.dart:53:9 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\data_seeder.dart:56:5 - avoid_print
+warning - The value of the local variable 'fcmCount' isn't used - lib\services\teacher_notification_service.dart:61:11 - unused_local_variable
+

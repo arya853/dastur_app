@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/app_colors.dart';
 import '../../core/app_constants.dart';
 import '../../widgets/shared_widgets.dart';
 import '../../services/mock_data_service.dart';
-import '../../services/notification_service.dart';
+import '../../services/teacher_notification_service.dart';
 import '../../services/auth_service.dart';
 
 
@@ -16,20 +17,44 @@ class MarkAttendanceScreen extends StatefulWidget {
 }
 
 class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
-  String _selectedClass = 'VIII-A';
   final Map<String, String> _attendance = {}; // studentId -> status
+  bool _initialized = false;
+  String? _grade;
+  String? _teacherClass;
+  String? _teacherDiv;
+
+  Future<void> _initialize(BuildContext context) async {
+    if (_initialized) return;
+    
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final teacher = authService.teacherProfile;
+
+    if (teacher != null) {
+      _teacherClass = teacher['CLASS']?.toString();
+      _teacherDiv = teacher['DIV'];
+      
+      if (_teacherClass == '5' || _teacherClass == 'V') _grade = 'grade5';
+      else if (_teacherClass == '6' || _teacherClass == 'VI') _grade = 'grade6';
+      else if (_teacherClass == '7' || _teacherClass == 'VII') _grade = 'grade7';
+      else if (_teacherClass == '8' || _teacherClass == 'VIII') _grade = 'grade8';
+      else _grade = 'grade5';
+
+      // Prefill attendance once we have students (we'll do this in the builder or after fetch)
+    }
+    
+    setState(() => _initialized = true);
+  }
 
   @override
-  void initState() {
-    super.initState();
-    for (final s in MockDataService.allStudents.where((s) => '${s.className}-${s.division}' == _selectedClass)) {
-      _attendance[s.id] = 'present';
-    }
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _initialize(context);
   }
 
   @override
   Widget build(BuildContext context) {
-    final students = MockDataService.allStudents.where((s) => '${s.className}-${s.division}' == _selectedClass).toList();
+    if (!_initialized) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_teacherClass == null) return const Scaffold(body: Center(child: Text('Teacher class not assigned.')));
 
     return Scaffold(
       appBar: const GradientAppBar(title: 'Mark Attendance', showBackButton: true),
@@ -37,51 +62,68 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
       body: Column(children: [
         Container(
           height: 50, color: AppColors.surface,
-          child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), children:
-            (Provider.of<AuthService>(context).currentUser?.role == 'teacher' 
-              ? ['VIII-A'] // Fallback or fetch from user metadata
-              : ['VIII-A']).map((c) {
-              final selected = c == _selectedClass;
-              return Padding(padding: const EdgeInsets.only(right: 8), child: GestureDetector(
-                onTap: () => setState(() { _selectedClass = c; _attendance.clear(); for (final s in MockDataService.allStudents.where((s) => '${s.className}-${s.division}' == c)) { _attendance[s.id] = 'present'; } }),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(color: selected ? AppColors.accent : AppColors.surfaceElevated, borderRadius: BorderRadius.circular(20)),
-                  child: Text(c, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: selected ? AppColors.primaryDark : AppColors.textSecondary)),
-                ),
-              ));
-            }).toList(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Text('Class: $_teacherClass | Div: $_teacherDiv', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
           ),
         ),
         // Student list
-        Expanded(child: students.isEmpty
-          ? const EmptyState(icon: Icons.people_outline, message: 'No students in this class')
-          : ListView.builder(
-            padding: const EdgeInsets.all(16), itemCount: students.length,
-            itemBuilder: (context, i) {
-              final s = students[i];
-              final status = _attendance[s.id] ?? 'present';
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppConstants.radiusMd),
-                  boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))]),
-                child: Row(children: [
-                  CircleAvatar(radius: 18, backgroundColor: AppColors.accent.withValues(alpha: 0.12),
-                    child: Text(s.name.isNotEmpty ? s.name[0] : 'S', style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.accent))),
-                  const SizedBox(width: 12),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(s.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                    Text('Roll: ${s.rollNumber}', style: const TextStyle(fontSize: 11, color: AppColors.textSubtle)),
-                  ])),
-                  // Status toggles
-                  _statusBtn('P', 'present', status, s.id, AppColors.statusPresent),
-                  const SizedBox(width: 6),
-                  _statusBtn('A', 'absent', status, s.id, AppColors.statusAbsent),
-                  const SizedBox(width: 6),
-                  _statusBtn('L', 'leave', status, s.id, AppColors.statusLeave),
-                ]),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('students')
+                .doc(_grade)
+                .collection('DIV_A')
+                .where('CLASS', isEqualTo: _teacherClass)
+                .where('DIV', isEqualTo: _teacherDiv)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
+              
+              final docs = snapshot.data?.docs ?? [];
+              if (docs.isEmpty) {
+                return const EmptyState(icon: Icons.people_outline, message: 'No students found for your class.');
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: docs.length,
+                itemBuilder: (context, i) {
+                  final s = docs[i].data() as Map<String, dynamic>;
+                  final studentId = docs[i].id;
+                  final name = s['NAME'] ?? s['name'] ?? 'No Name';
+                  final roll = s['rollNo'] ?? s['ROLL NO.'] ?? 'N/A';
+                  
+                  // Initialize if not present
+                  _attendance.putIfAbsent(studentId, () => 'present');
+                  
+                  final status = _attendance[studentId]!;
+                  
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                      boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))]),
+                    child: Row(children: [
+                      CircleAvatar(radius: 18, backgroundColor: AppColors.accent.withValues(alpha: 0.12),
+                        child: Text(name.isNotEmpty ? name[0] : 'S', style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.accent))),
+                      const SizedBox(width: 12),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        Text('Roll: $roll', style: const TextStyle(fontSize: 11, color: AppColors.textSubtle)),
+                      ])),
+                      _statusBtn('P', 'present', status, studentId, AppColors.statusPresent),
+                      const SizedBox(width: 6),
+                      _statusBtn('A', 'absent', status, studentId, AppColors.statusAbsent),
+                      const SizedBox(width: 6),
+                      _statusBtn('L', 'leave', status, studentId, AppColors.statusLeave),
+                    ]),
+                  );
+                },
               );
-            },
+            }
           ),
         ),
         // Submit button
@@ -90,22 +132,25 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
           child: SizedBox(width: double.infinity, height: 48,
             child: ElevatedButton(
               onPressed: () async {
-                final notificationService = Provider.of<NotificationService>(context, listen: false);
+                final notificationService = Provider.of<TeacherNotificationService>(context, listen: false);
+                final authService = Provider.of<AuthService>(context, listen: false);
                 
-                // Trigger notification to parents of this class
-                // Format topic: class_8_div_a
-                final parts = _selectedClass.split('-');
-                final topic = 'class_${parts[0]}_div_${parts[1]}'.toLowerCase();
-                
-                await notificationService.sendNotification(
-                  topic: topic,
-                  title: 'Attendance Updated',
-                  body: 'Attendance for Class $_selectedClass has been marked for today.',
-                );
+                try {
+                  await notificationService.sendNotificationToClass(
+                    teacherEmail: authService.currentUser?.email ?? '',
+                    title: 'Attendance Updated',
+                    message: 'Attendance for Class $_teacherClass-$_teacherDiv has been marked for today.',
+                    type: 'attendance',
+                  );
 
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Attendance submitted & parents notified!')));
-                  Navigator.pop(context);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Attendance submitted & parents notified!'), backgroundColor: Colors.green));
+                    Navigator.pop(context);
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+                  }
                 }
               },
               child: const Text('Submit Attendance'),
@@ -133,108 +178,96 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
   }
 }
 
-/// Teacher Announcements Screen – create/manage class announcements.
-class TeacherAnnouncementsScreen extends StatelessWidget {
-  const TeacherAnnouncementsScreen({super.key});
-  @override
-  Widget build(BuildContext context) {
-    final anns = MockDataService.announcements.where((a) => a.authorId == 'teacher-001').toList();
-    return Scaffold(
-      appBar: const GradientAppBar(title: 'My Announcements', showBackButton: true),
-      backgroundColor: AppColors.background,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showCreateDialog(context),
-        child: const Icon(Icons.add),
-      ),
-      body: anns.isEmpty
-        ? const EmptyState(icon: Icons.campaign_outlined, message: 'No announcements yet.\nTap + to create one.')
-        : ListView.builder(padding: const EdgeInsets.all(16), itemCount: anns.length, itemBuilder: (context, i) {
-          final ann = anns[i];
-          return Container(margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppConstants.radiusMd),
-              boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 2))]),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Expanded(child: Text(ann.title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14))),
-                StatusChip(label: ann.type.toUpperCase(), color: AppColors.accent),
-              ]),
-              const SizedBox(height: 6),
-              Text(ann.body, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary), maxLines: 2, overflow: TextOverflow.ellipsis),
-            ]),
-          );
-        }),
-    );
-  }
-
-  void _showCreateDialog(BuildContext context) {
-    final titleController = TextEditingController();
-    final bodyController = TextEditingController();
-
-    showDialog(context: context, builder: (context) => AlertDialog(
-      title: const Text('Create Class Announcement'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(controller: titleController, decoration: const InputDecoration(labelText: 'Title')),
-          TextField(controller: bodyController, decoration: const InputDecoration(labelText: 'Message'), maxLines: 3),
-        ],
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        ElevatedButton(
-          onPressed: () async {
-            final notificationService = Provider.of<NotificationService>(context, listen: false);
-            
-            // Trigger class-specific notification
-            // Try to get class from user or use default VIII-A
-
-            final classNode = 'VIII-A'; 
-            final parts = classNode.split('-');
-            final topic = 'class_${parts[0]}_div_${parts[1]}'.toLowerCase();
-
-            await notificationService.sendNotification(
-              topic: topic,
-              title: titleController.text.trim(),
-              body: bodyController.text.trim(),
-            );
-
-            if (context.mounted) {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Class announcement created & parents notified!')));
-            }
-          },
-          child: const Text('Create & Notify'),
-        ),
-      ],
-    ));
-  }
-}
-
 /// Teacher Students Screen – view students in assigned classes.
 class TeacherStudentsScreen extends StatelessWidget {
   const TeacherStudentsScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
-    final students = MockDataService.allStudents;
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final teacher = authService.teacherProfile;
+
+    if (teacher == null) {
+      return Scaffold(
+        appBar: const GradientAppBar(title: 'Class Students', showBackButton: true),
+        body: const Center(child: Text('Teacher profile not found.')),
+      );
+    }
+
+    final teacherClass = teacher['CLASS']?.toString();
+    final teacherDiv = teacher['DIV'];
+    
+    // Determine grade collection
+    String grade = 'grade5';
+    if (teacherClass == '5' || teacherClass == 'V') grade = 'grade5';
+    if (teacherClass == '6' || teacherClass == 'VI') grade = 'grade6';
+    if (teacherClass == '7' || teacherClass == 'VII') grade = 'grade7';
+    if (teacherClass == '8' || teacherClass == 'VIII') grade = 'grade8';
+
     return Scaffold(
       appBar: const GradientAppBar(title: 'Class Students', showBackButton: true),
       backgroundColor: AppColors.background,
-      body: ListView.builder(padding: const EdgeInsets.all(16), itemCount: students.length, itemBuilder: (context, i) {
-        final s = students[i];
-        return Container(margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppConstants.radiusMd),
-            boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))]),
-          child: Row(children: [
-            CircleAvatar(radius: 20, backgroundColor: AppColors.accent.withValues(alpha: 0.12),
-              child: Text(s.name.isNotEmpty ? s.name[0] : 'S', style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.accent, fontSize: 16))),
-            const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(s.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-              Text('Class ${s.fullClass} • Roll ${s.rollNumber}', style: const TextStyle(fontSize: 12, color: AppColors.textSubtle)),
-            ])),
-          ]),
-        );
-      }),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('students')
+            .doc(grade)
+            .collection('DIV_A')
+            .where('CLASS', isEqualTo: teacherClass)
+            .where('DIV', isEqualTo: teacherDiv)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          final docs = snapshot.data?.docs ?? [];
+          if (docs.isEmpty) {
+            return const EmptyState(icon: Icons.people_outline, message: 'No students found in your assigned class.');
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: docs.length,
+            itemBuilder: (context, i) {
+              final s = docs[i].data() as Map<String, dynamic>;
+              final name = s['NAME'] ?? s['name'] ?? 'No Name';
+              final grNo = s['GR NO.'] ?? s['grNo'] ?? docs[i].id;
+              final roll = s['rollNo'] ?? s['ROLL NO.'] ?? 'N/A';
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                  boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))],
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: AppColors.accent.withValues(alpha: 0.12),
+                      child: Text(name.isNotEmpty ? name[0] : 'S', style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.accent, fontSize: 16)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                          Text('GR: $grNo • Roll: $roll', style: const TextStyle(fontSize: 12, color: AppColors.textSubtle)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }
@@ -280,11 +313,15 @@ class TeacherQuizzesScreen extends StatelessWidget {
 /// Teacher Profile Screen.
 class TeacherProfileScreen extends StatelessWidget {
   const TeacherProfileScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
-    final user = Provider.of<AuthService>(context).currentUser;
+    final authService = Provider.of<AuthService>(context);
+    final user = authService.currentUser;
+    final teacher = authService.teacherProfile;
     final displayName = user?.displayName ?? 'Teacher';
     final email = user?.email ?? '-';
+    final assignedClass = teacher != null ? '${teacher['CLASS'] ?? 'N/A'}-${teacher['DIV'] ?? 'A'}' : 'N/A';
 
     return Scaffold(
       appBar: const GradientAppBar(title: 'My Profile', showBackButton: true),
@@ -309,7 +346,7 @@ class TeacherProfileScreen extends StatelessWidget {
             const SizedBox(height: 12),
             _row(Icons.email, 'Email', email), 
             _row(Icons.book, 'Subjects', 'General'),
-            _row(Icons.class_, 'Classes', 'VIII-A'),
+            _row(Icons.class_, 'Assigned Class', assignedClass),
           ]),
         ),
       ])),

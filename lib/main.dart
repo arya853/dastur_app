@@ -11,7 +11,10 @@ import 'core/app_constants.dart';
 // Services
 import 'services/auth_service.dart';
 import 'services/photo_upload_service.dart';
-import 'services/notification_service.dart';
+import 'controllers/notification_controller.dart';
+import 'services/teacher_notification_service.dart';
+import 'services/fcm_service.dart';
+import 'services/data_migration_service.dart';
 
 // Screens - Auth
 import 'screens/auth/login_screen.dart';
@@ -23,6 +26,7 @@ import 'screens/parent/parent_dashboard.dart';
 // Screens - Teacher
 import 'screens/teacher/teacher_dashboard.dart';
 import 'screens/teacher/teacher_screens.dart';
+import 'screens/teacher/teacher_notification_screen.dart';
 
 // Screens - Admin
 import 'screens/admin/admin_dashboard.dart';
@@ -42,7 +46,7 @@ import 'screens/shared/attendance_screen.dart';
 import 'screens/shared/timetable_screen.dart';
 import 'screens/shared/profile_screen.dart';
 import 'screens/shared/parent_id_card_screen.dart';
-import 'screens/shared/notifications_screen.dart';
+import 'screens/shared/notifications/notification_screen.dart';
 import 'screens/shared/announcement_detail_screen.dart';
 import 'models/announcement.dart';
 
@@ -58,31 +62,49 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint("Handling a background message: ${message.messageId}");
 }
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+void handleNotificationClick(RemoteMessage? message) {
+  if (message == null) return;
+  debugPrint("Notification Clicked: ${message.data}");
+  
+  // Use a recursive check or slight delay if navigator is not ready
+  if (navigatorKey.currentState == null) {
+    Future.delayed(const Duration(milliseconds: 500), () => handleNotificationClick(message));
+    return;
+  }
+  
+  navigatorKey.currentState!.pushNamed('/notifications');
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // Request Notification Permissions
-  FirebaseMessaging messaging = FirebaseMessaging.instance;
-  await messaging.requestPermission(
-    alert: true,
-    announcement: false,
-    badge: true,
-    carPlay: false,
-    criticalAlert: false,
-    provisional: false,
-    sound: true,
-  );
+  // Setup FCM
+  FcmService fcmService = FcmService();
+  await fcmService.init();
 
-  // Handle Foreground Messages
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    debugPrint('Got a message whilst in the foreground!');
-    if (message.notification != null) {
-      debugPrint('Message also contained a notification: \${message.notification}');
-    }
+  // One-time migration (Safe to call multiple times as it checks for empty list)
+  DataMigrationService().migrateStudentsListToDivA();
+
+  // FcmService now handles foreground messages
+
+  // Handle App opened from background via notification tap
+  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+    handleNotificationClick(message);
   });
+
+  // Handle App opened from terminated state via notification tap
+  RemoteMessage? initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+  if (initialMessage != null) {
+    // Delay routing slightly to ensure AuthWrapper has determined initial route
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      handleNotificationClick(initialMessage);
+    });
+  }
 
   // Lock to portrait mode for consistent UI
   SystemChrome.setPreferredOrientations([
@@ -108,12 +130,14 @@ class DasturParentPortalApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
         Provider(create: (_) => PhotoUploadService()),
-        ChangeNotifierProvider(create: (_) => NotificationService()),
+        Provider(create: (_) => NotificationController()),
+        Provider(create: (_) => TeacherNotificationService()),
       ],
       child: MaterialApp(
         title: AppConstants.schoolShortName,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
+        navigatorKey: navigatorKey,
 
         // Use AuthWrapper to handle session persistence
         home: const AuthWrapper(),
@@ -145,11 +169,11 @@ class DasturParentPortalApp extends StatelessWidget {
           '/exam-timetable': (_) => const ExamTimetableScreen(),
           '/profile': (_) => const ProfileScreen(),
           '/parent-id-card': (_) => const ParentIdCardScreen(),
-          '/notifications': (_) => const NotificationsScreen(),
+          '/notifications': (_) => const NotificationScreen(),
+          '/teacher-send-notification': (_) => const TeacherNotificationScreen(),
 
           // Teacher-specific screens
           '/teacher-mark-attendance': (_) => const MarkAttendanceScreen(),
-          '/teacher-announcements': (_) => const TeacherAnnouncementsScreen(),
           '/teacher-students': (_) => const TeacherStudentsScreen(),
           '/teacher-quizzes': (_) => const TeacherQuizzesScreen(),
           '/teacher-profile': (_) => const TeacherProfileScreen(),

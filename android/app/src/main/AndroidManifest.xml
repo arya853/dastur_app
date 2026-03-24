@@ -4,6 +4,7 @@
 
     <!-- Required for FCM/network operations -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:label="dastur_parent_portal"
@@ -12,7 +13,7 @@
         <!-- Default channel id used by Firebase when posting notification messages on Android 8+ -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="dastur_general" />
+            android:value="high_importance_channel_v2" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/app_colors.dart';
 import '../../core/app_constants.dart';
 import '../../widgets/shared_widgets.dart';
 import '../../services/mock_data_service.dart';
-import '../../services/notification_service.dart';
 
 /// Admin Manage Students Screen.
 class AdminStudentsScreen extends StatefulWidget {
@@ -54,7 +53,10 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                 return _managementCard(
                   avatar: s.name[0], title: s.name, subtitle: 'GR: ${s.grNo} • Class ${s.fullClass}',
                   onEdit: () => _showFormDialog(context, 'Edit Student'),
-                  onDelete: () => _confirmDelete(context, s.name),
+                  onDelete: () => _confirmDelete(context, s.name, () {
+                    // Mock delete for now as these screens aren't fully refactored
+                    debugPrint('Deleting student ${s.name}');
+                  }),
                 );
               }
             ),
@@ -68,20 +70,53 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
 /// Admin Manage Teachers Screen.
 class AdminTeachersScreen extends StatelessWidget {
   const AdminTeachersScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const GradientAppBar(title: 'Manage Teachers', showBackButton: true),
       backgroundColor: AppColors.background,
-      floatingActionButton: FloatingActionButton(onPressed: () => _showFormDialog(context, 'Add Teacher'), child: const Icon(Icons.add)),
-      body: ListView.builder(padding: const EdgeInsets.all(16), itemCount: MockDataService.allTeachers.length, itemBuilder: (context, i) {
-        final t = MockDataService.allTeachers[i];
-        return _managementCard(
-          avatar: t.name[0], title: t.name, subtitle: '${t.subjects.join(", ")} • ${t.assignedClasses.join(", ")}',
-          onEdit: () => _showFormDialog(context, 'Edit Teacher'),
-          onDelete: () => _confirmDelete(context, t.name),
-        );
-      }),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddTeacherDialog(context),
+        child: const Icon(Icons.add),
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('teachers').snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          final docs = snapshot.data?.docs ?? [];
+          if (docs.isEmpty) {
+            return const EmptyState(icon: Icons.person_off_outlined, message: 'No teachers found.');
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: docs.length,
+            itemBuilder: (context, i) {
+              final data = docs[i].data() as Map<String, dynamic>;
+              final name = data['name'] ?? 'No Name';
+              final email = data['email'] ?? docs[i].id;
+              final className = data['CLASS']?.toString() ?? 'N/A';
+              final div = data['DIV'] ?? 'N/A';
+
+              return _managementCard(
+                avatar: name.isNotEmpty ? name[0] : 'T',
+                title: name,
+                subtitle: 'Email: $email\nClass: $className | Div: $div',
+                onEdit: () => _showAddTeacherDialog(context, teacherData: data, docId: docs[i].id),
+                onDelete: () => _confirmDelete(context, name, () {
+                  FirebaseFirestore.instance.collection('teachers').doc(docs[i].id).delete();
+                }),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }
@@ -99,7 +134,8 @@ class AdminParentsScreen extends StatelessWidget {
         _managementCard(
           avatar: MockDataService.demoParent.name[0], title: MockDataService.demoParent.name,
           subtitle: 'Child: ${MockDataService.demoStudent.name}',
-          onEdit: () => _showFormDialog(context, 'Edit Parent'), onDelete: () => _confirmDelete(context, MockDataService.demoParent.name),
+          onEdit: () => _showFormDialog(context, 'Edit Parent'), 
+          onDelete: () => _confirmDelete(context, MockDataService.demoParent.name, () {}),
         ),
       ]),
     );
@@ -128,7 +164,7 @@ class AdminAnnouncementsScreen extends StatelessWidget {
               Text('${a.date.day}/${a.date.month}/${a.date.year} • ${a.type}', style: const TextStyle(fontSize: 11, color: AppColors.textSubtle)),
             ])),
             IconButton(icon: const Icon(Icons.edit, size: 18, color: AppColors.accent), onPressed: () => _showFormDialog(context, 'Edit Announcement')),
-            IconButton(icon: const Icon(Icons.delete, size: 18, color: AppColors.error), onPressed: () => _confirmDelete(context, a.title)),
+            IconButton(icon: const Icon(Icons.delete, size: 18, color: AppColors.error), onPressed: () => _confirmDelete(context, a.title, () {})),
           ]),
         );
       }),
@@ -347,22 +383,12 @@ void _showAnnouncementDialog(BuildContext context) {
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
         ElevatedButton(
-          onPressed: () async {
-            final notificationService = Provider.of<NotificationService>(context, listen: false);
-            
-            // Trigger school-wide notification
-            await notificationService.sendNotification(
-              topic: 'school_announcements',
-              title: titleController.text.trim(),
-              body: bodyController.text.trim(),
-            );
-
-            if (context.mounted) {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Announcement created & notifications sent!')));
-            }
+          onPressed: () {
+            // TODO: Link to a centralized Announcement Service
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Announcement created (Notifications logic TBD)')));
           },
-          child: const Text('Create & Notify'),
+          child: const Text('Create'),
         ),
       ],
     ),
@@ -376,13 +402,108 @@ void _showFormDialog(BuildContext context, String title) {
   ));
 }
 
-void _confirmDelete(BuildContext context, String name) {
+void _showAddTeacherDialog(BuildContext context, {Map<String, dynamic>? teacherData, String? docId}) {
+  final nameController = TextEditingController(text: teacherData?['name']);
+  final emailController = TextEditingController(text: teacherData?['email'] ?? docId);
+  String selectedClass = teacherData?['CLASS']?.toString() ?? '5';
+  String selectedDiv = teacherData?['DIV'] ?? 'A';
+  bool isEdit = teacherData != null;
+
+  showDialog(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setDialogState) => AlertDialog(
+        title: Text(isEdit ? 'Edit Teacher' : 'Add New Teacher'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Teacher Name'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(labelText: 'Email Address'),
+                enabled: !isEdit,
+              ),
+              const SizedBox(height: 16),
+              const Text('Assigned Class:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              DropdownButton<String>(
+                isExpanded: true,
+                value: selectedClass,
+                items: ['5', '6', '7', '8'].map((c) => DropdownMenuItem(value: c, child: Text('Grade $c'))).toList(),
+                onChanged: (val) => setDialogState(() => selectedClass = val!),
+              ),
+              const SizedBox(height: 8),
+              const Text('Division:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              DropdownButton<String>(
+                isExpanded: true,
+                value: selectedDiv,
+                items: ['A', 'B'].map((d) => DropdownMenuItem(value: d, child: Text('Division $d'))).toList(),
+                onChanged: (val) => setDialogState(() => selectedDiv = val!),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.isEmpty || emailController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
+                return;
+              }
+
+              final email = emailController.text.trim().toLowerCase();
+              final data = {
+                'name': nameController.text.trim(),
+                'email': email,
+                'CLASS': selectedClass, // Save as String to match student data format
+                'DIV': selectedDiv,
+              };
+
+              try {
+                if (isEdit) {
+                  await FirebaseFirestore.instance.collection('teachers').doc(docId).update(data);
+                } else {
+                  // Check if teacher already exists
+                  final existing = await FirebaseFirestore.instance.collection('teachers').doc(email).get();
+                  if (existing.exists) {
+                    throw "Teacher with this email already exists.";
+                  }
+                  await FirebaseFirestore.instance.collection('teachers').doc(email).set(data);
+                }
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isEdit ? 'Teacher updated' : 'Teacher added successfully')));
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                }
+              }
+            },
+            child: Text(isEdit ? 'Update' : 'Create'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+void _confirmDelete(BuildContext context, String name, VoidCallback onDelete) {
   showDialog(context: context, builder: (_) => AlertDialog(
     title: const Text('Confirm Delete'),
     content: Text('Are you sure you want to delete "$name"? This action cannot be undone.'),
     actions: [
       TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-      TextButton(onPressed: () { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$name deleted'))); },
+      TextButton(onPressed: () { 
+        onDelete();
+        Navigator.pop(context); 
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$name deleted'))); 
+      },
         child: const Text('Delete', style: TextStyle(color: AppColors.error))),
     ],
   ));

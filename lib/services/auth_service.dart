@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'fcm_service.dart';
 
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -11,11 +12,13 @@ class AuthService extends ChangeNotifier {
 
   AppUser? _currentUser;
   Map<String, dynamic>? _studentProfile;
+  Map<String, dynamic>? _teacherProfile;
   bool _isLoading = false;
   bool _isInitializing = true;
 
   AppUser? get currentUser => _currentUser;
   Map<String, dynamic>? get studentProfile => _studentProfile;
+  Map<String, dynamic>? get teacherProfile => _teacherProfile;
   bool get isLoading => _isLoading;
   bool get isInitializing => _isInitializing;
   bool get isLoggedIn => _currentUser != null;
@@ -27,6 +30,9 @@ class AuthService extends ChangeNotifier {
   Future<void> _init() async {
     // 1. Try to load internal cached session first (handles manual/bypass logins)
     await _loadSession();
+    if (_currentUser != null) {
+      _updateFcmToken();
+    }
 
     // 2. Listen to Firebase Auth State Changes
     _auth.authStateChanges().listen((User? user) async {
@@ -86,72 +92,82 @@ class AuthService extends ChangeNotifier {
       if (doc.exists) {
         _currentUser = AppUser.fromMap(doc.data() as Map<String, dynamic>, doc.id);
       } else {
-        // 2. Search in teachers
-        DocumentSnapshot teacherDoc = await _db.collection('teachers').doc(uid).get();
-        if (teacherDoc.exists) {
-          final data = teacherDoc.data() as Map<String, dynamic>;
-          _currentUser = AppUser(
-            uid: uid,
-            email: data['email'] ?? '',
-            role: 'teacher',
-            displayName: data['name'] ?? 'Teacher',
-          );
-        } else {
-          // 3. Fallback: Search in students (Parent case)
-          // We look for a student record where email matches Firebase Auth email
-          final email = _auth.currentUser?.email;
-          if (email != null && email.contains('@dastur.org')) {
-             final grNo = email.split('@').first;
-             _studentProfile = await _findStudentByGr(grNo);
-             if (_studentProfile != null) {
-                // Priority: Mother's Name, Father's Name, Parent 1/2, parentName, etc.
-                final pName = _studentProfile!["MOTHER'S NAME"] ??
-                             _studentProfile!["Mother's NAME"] ??
-                             _studentProfile!["Mother's Name"] ??
-                             _studentProfile!["MOTHER NAME"] ??
-                             _studentProfile!["Father's NAME"] ??
-                             _studentProfile!["FATHER'S NAME"] ??
-                             _studentProfile!["Father's Name"] ??
-                             _studentProfile!["FATHER NAME"] ??
-                             _studentProfile!['Parent 1'] ?? 
-                             _studentProfile!['parent 1'] ??
-                             _studentProfile!['PARENT 1 NAME'] ??
-                             _studentProfile!['parent 2 name'] ??
-                             _studentProfile!['Parent 2 Name'] ??
-                             _studentProfile!['PARENT 2 NAME'] ??
-                             _studentProfile!['parentName'] ?? 
-                             _studentProfile!['parentDetails']?['name'] ?? 
-                             _studentProfile!['PARENT DETAILS']?['NAME'] ?? 
-                             'Parent';
-                             
-                _currentUser = AppUser(
-                  uid: uid,
-                  email: email,
-                  role: 'parent',
-                  displayName: pName,
-                );
-             }
+        // 2. Search in teachers (ID is now the email)
+        final email = _auth.currentUser?.email;
+        DocumentSnapshot? teacherDoc;
+        
+        if (email != null) {
+          final docRef = _db.collection('teachers').doc(email.toLowerCase());
+          final snap = await docRef.get();
+          if (snap.exists) {
+            teacherDoc = snap;
+          } else {
+            // Fallback for UID-based doc name
+            final query = await _db.collection('teachers').where('uid', isEqualTo: uid).get();
+            if (query.docs.isNotEmpty) teacherDoc = query.docs.first;
+          }
+
+          if (teacherDoc != null && teacherDoc.exists) {
+            _teacherProfile = teacherDoc.data() as Map<String, dynamic>;
+            final data = _teacherProfile!;
+            
+            // Link UID if not present
+            if (data['uid'] == null) {
+              await teacherDoc.reference.update({'uid': uid});
+              _teacherProfile!['uid'] = uid;
+            }
+
+            _currentUser = AppUser(
+              uid: uid,
+              email: data['email'] ?? email,
+              role: 'teacher',
+              displayName: data['NAME'] ?? data['name'] ?? 'Teacher',
+            );
+          } else {
+            // 3. Fallback: Search in students (Parent case)
+            if (email.contains('@dastur.org')) {
+               final grNo = email.split('@').first;
+               _studentProfile = await _findStudentByGr(grNo);
+               if (_studentProfile != null) {
+                  final pName = _studentProfile!["MOTHER'S NAME"] ??
+                               _studentProfile!["Mother's NAME"] ??
+                               _studentProfile!["Mother's Name"] ??
+                               _studentProfile!["MOTHER NAME"] ??
+                               _studentProfile!["Father's NAME"] ??
+                               _studentProfile!["FATHER'S NAME"] ??
+                               _studentProfile!["Father's Name"] ??
+                               _studentProfile!["FATHER NAME"] ??
+                               _studentProfile!['Parent 1'] ?? 
+                               'Parent';
+                               
+                  _currentUser = AppUser(
+                    uid: uid,
+                    email: email,
+                    role: 'parent',
+                    displayName: pName,
+                  );
+               }
+            }
           }
         }
       }
 
       // Final fallback if logged in but no profile found anywhere
       if (_currentUser == null && _auth.currentUser != null) {
-         final email = _auth.currentUser?.email ?? '';
-         final isAdmin = email == 'admin1@dastur.org';
-         
-         _currentUser = AppUser(
-           uid: uid,
-           email: email,
-           displayName: isAdmin ? 'Administrator' : 'User',
-           role: isAdmin ? 'admin' : 'parent',
-         );
+        final email = _auth.currentUser?.email ?? '';
+        final isAdmin = email == 'admin1@dastur.org';
+        _currentUser = AppUser(
+          uid: uid,
+          email: email,
+          displayName: isAdmin ? 'Administrator' : 'User',
+          role: isAdmin ? 'admin' : 'parent',
+        );
       }
       
-      // Load student data if parent
+      // Load student data if parent (ensure we have it even if direct fetch above failed)
       if (_currentUser?.role == 'parent' && _studentProfile == null) {
-         final grNo = _currentUser!.email.split('@').first;
-         _studentProfile = await _findStudentByGr(grNo);
+        final grNo = _currentUser!.email.split('@').first;
+        _studentProfile = await _findStudentByGr(grNo);
       }
 
     } catch (e) {
@@ -165,6 +181,7 @@ class AuthService extends ChangeNotifier {
   Future<bool> login(String email, String password, {String? requiredRole}) async {
     _isLoading = true;
     _studentProfile = null;
+    _teacherProfile = null;
     notifyListeners();
 
     try {
@@ -255,6 +272,7 @@ class AuthService extends ChangeNotifier {
       }
 
       await _saveSession();
+      await _updateFcmToken();
       _isLoading = false;
       notifyListeners();
       return true;
@@ -262,6 +280,38 @@ class AuthService extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       rethrow;
+    }
+  }
+
+  Future<void> _updateFcmToken() async {
+    try {
+      final fcmService = FcmService();
+      final token = await fcmService.getToken();
+      if (token == null || _currentUser == null) return;
+
+      if (_currentUser!.role == 'teacher') {
+        await _db.collection('teachers').doc(_currentUser!.email.toLowerCase()).update({
+          'fcmToken': token,
+        }).catchError((_) async {
+          // Fallback if doc name isn't email
+          final q = await _db.collection('teachers').where('uid', isEqualTo: _currentUser!.uid).get();
+          if (q.docs.isNotEmpty) await q.docs.first.reference.update({'fcmToken': token});
+        });
+      } else if (_currentUser!.role == 'parent' && _studentProfile != null) {
+        // Find which grade collection the student is in
+        final grades = ['grade5', 'grade6', 'grade7', 'grade8'];
+        final grNo = _studentProfile!['GR NO.'] ?? _studentProfile!['grNo'] ?? _currentUser!.email.split('@').first;
+        for (final grade in grades) {
+          final docRef = _db.collection('students').doc(grade).collection('DIV_A').doc(grNo);
+          final snap = await docRef.get();
+          if (snap.exists) {
+            await docRef.update({'fcmToken': token});
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error updating FCM token: $e");
     }
   }
 
@@ -274,6 +324,9 @@ class AuthService extends ChangeNotifier {
       await prefs.setString('user_session', json.encode(_currentUser!.toMap()..['uid'] = _currentUser!.uid));
       if (_studentProfile != null) {
         await prefs.setString('student_profile', json.encode(_studentProfile));
+      }
+      if (_teacherProfile != null) {
+        await prefs.setString('teacher_profile', json.encode(_teacherProfile));
       }
     } catch (e) {
       debugPrint("Error saving session: $e");
@@ -292,6 +345,10 @@ class AuthService extends ChangeNotifier {
         if (profileStr != null) {
           _studentProfile = json.decode(profileStr);
         }
+        final teacherProfileStr = prefs.getString('teacher_profile');
+        if (teacherProfileStr != null) {
+          _teacherProfile = json.decode(teacherProfileStr);
+        }
       }
     } catch (e) {
       debugPrint("Error loading session: $e");
@@ -302,13 +359,14 @@ class AuthService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('user_session');
     await prefs.remove('student_profile');
+    await prefs.remove('teacher_profile');
   }
 
   // ── Helpers ──
 
   Future<Map<String, dynamic>?> _findStudentByGr(String grNo) async {
-    try {
-       QuerySnapshot globalSearch = await _db.collection('students').where('grNo', isEqualTo: grNo).get();
+     try {
+       QuerySnapshot globalSearch = await _db.collection('students').where('GR NO.', isEqualTo: grNo).get();
        if (globalSearch.docs.isNotEmpty) return globalSearch.docs.first.data() as Map<String, dynamic>;
     } catch (e) {
       debugPrint("Search error in students collection: $e");
@@ -317,7 +375,7 @@ class AuthService extends ChangeNotifier {
     final grades = ['grade5', 'grade6', 'grade7', 'grade8'];
     for (final grade in grades) {
       try {
-        DocumentSnapshot doc = await _db.collection('students').doc(grade).collection('list').doc(grNo).get();
+        DocumentSnapshot doc = await _db.collection('students').doc(grade).collection('DIV_A').doc(grNo).get();
         if (doc.exists) return doc.data() as Map<String, dynamic>;
       } catch (e) {
         debugPrint("Search error in grade collection $grade: $e");
@@ -339,6 +397,7 @@ class AuthService extends ChangeNotifier {
     await _auth.signOut();
     _currentUser = null;
     _studentProfile = null;
+    _teacherProfile = null;
     await _clearSession();
   }
 }
