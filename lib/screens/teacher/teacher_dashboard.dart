@@ -76,20 +76,6 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                     ),
                   ]),
                 ]),
-                const SizedBox(height: 12),
-                // Classes & subjects
-                Wrap(spacing: 8, runSpacing: 6, children: [
-                  ...subjects.map((s) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                    decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(20)),
-                    child: Text(s, style: const TextStyle(color: AppColors.accent, fontSize: 12, fontWeight: FontWeight.w600)),
-                  )),
-                  ...classes.map((c) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                    child: Text(c, style: const TextStyle(color: AppColors.textOnDarkMuted, fontSize: 12, fontWeight: FontWeight.w500)),
-                  )),
-                ]),
               ]),
             )),
           )),
