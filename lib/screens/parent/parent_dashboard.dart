@@ -10,6 +10,7 @@ import '../../models/announcement.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import '../../widgets/app_drawer.dart';
+import '../../widgets/announcement_carousel.dart';
 
 /// Parent Dashboard Screen
 ///
@@ -24,44 +25,14 @@ class ParentDashboardScreen extends StatefulWidget {
 
 class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  late PageController _pageController;
-  Timer? _carouselTimer;
-  int _currentPage = 0;
-  int _announcementCount = 5; // Show top 5 recent announcements
-  int _actualCount = 0; // Actual filtered count for the timer
-  late Stream<QuerySnapshot> _announcementsStream;
 
   @override
   void initState() {
     super.initState();
-    _announcementsStream = FirebaseFirestore.instance
-        .collection('announcements')
-        .orderBy('date', descending: true)
-        .snapshots();
-        
-    _pageController = PageController(initialPage: 0);
-    _startCarouselTimer();
-  }
-
-  void _startCarouselTimer() {
-    _carouselTimer?.cancel();
-    _carouselTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (_pageController.hasClients && _actualCount > 0) {
-        _currentPage = (_currentPage + 1) % _actualCount;
-        _pageController.animateToPage(
-          _currentPage,
-          duration: const Duration(milliseconds: 800),
-          curve: Curves.easeInOutCubic,
-        );
-      }
+    // Auto-subscribe to student's class topic for notifications
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _subscribeToStudentTopic();
     });
-  }
-
-  @override
-  void dispose() {
-    _carouselTimer?.cancel();
-    _pageController.dispose();
-    super.dispose();
   }
 
   void _subscribeToStudentTopic() {
@@ -72,6 +43,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
+    final userRole = authService.currentUser?.role ?? 'parent';
     final studentData = authService.studentProfile;
     final studentDisplayName = studentData?['name'] ?? studentData?['NAME'] ?? 'Student';
     final studentClass = studentData?['className'] ?? studentData?['CLASS'] ?? '?';
@@ -232,7 +204,10 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
 
           // ── Announcement Carousel ──
           SliverToBoxAdapter(
-            child: _buildAnnouncementCarousel(),
+            child: AnnouncementCarousel(
+              userRole: userRole,
+              userClass: studentData?['CLASS']?.toString() ?? studentData?['className']?.toString(),
+            ),
           ),
 
           // ── 12-Tile Dashboard Grid ──
@@ -315,233 +290,5 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
         ],
       ),
     );
-  }
-
-  Widget _buildAnnouncementCarousel() {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final userRole = authService.currentUser?.role ?? 'parent';
-    
-    // Extract logical user class for filtering
-    String? userClass;
-    if (userRole == 'parent' && authService.studentProfile != null) {
-      final cInfo = authService.studentProfile!['CLASS'] ?? authService.studentProfile!['className'];
-      if (cInfo != null) userClass = cInfo.toString();
-    }
-
-    return StreamBuilder<QuerySnapshot>(
-      stream: _announcementsStream,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SizedBox(height: 90, child: Center(child: CircularProgressIndicator()));
-        }
-        if (snapshot.hasError) {
-          return SizedBox(height: 90, child: Center(child: Text("Error: ${snapshot.error}")));
-        }
-
-        final docs = snapshot.data?.docs ?? [];
-        
-        final List<Announcement> allVisible = [];
-        for (var doc in docs) {
-          final data = doc.data() as Map<String, dynamic>;
-          final ann = Announcement.fromMap(data, doc.id);
-          
-          if (!ann.isActive) continue; 
-          
-          // Parents see announcements targeted to 'all' or 'students'
-          bool roleMatch = ann.targetRole == 'all' || 
-                          ann.targetRole == 'students' || 
-                          ann.targetRole == 'parents' ||
-                          ann.targetRole == 'parent';
-                          
-          if (!roleMatch) continue;
-          if (ann.targetClass != null && ann.targetClass != userClass) continue;
-
-          allVisible.add(ann);
-        }
-
-        final announcements = allVisible.take(_announcementCount).toList();
-        
-        // Update actual count for the timer in a safe way
-        if (_actualCount != announcements.length) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) setState(() => _actualCount = announcements.length);
-          });
-        }
-        _actualCount = announcements.length; // Sync actual count for the timer
-
-        if (announcements.isEmpty) {
-          return Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(AppConstants.radiusMd),
-              border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.school, color: AppColors.primary),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Welcome to Dastur School', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                      Text('Stay tuned for upcoming announcements.', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        // Adjust current page if announcements shrink dynamically
-        if (_currentPage >= announcements.length) {
-          _currentPage = 0;
-        }
-
-        return Column(
-          children: [
-            SizedBox(
-              height: 90,
-              child: PageView.builder(
-                controller: _pageController,
-                onPageChanged: (index) => setState(() => _currentPage = index),
-                itemCount: announcements.length,
-                itemBuilder: (context, index) {
-                  final ann = announcements[index];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: InkWell(
-                      onTap: () => Navigator.pushNamed(
-                        context, 
-                        '/announcement-detail', 
-                        arguments: ann,
-                      ),
-                      borderRadius: BorderRadius.circular(AppConstants.radiusMd),
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(AppConstants.radiusMd),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.06),
-                              blurRadius: 10,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: _getAnnouncementColor(ann.type).withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(
-                                _getAnnouncementIcon(ann.type),
-                                color: _getAnnouncementColor(ann.type),
-                                size: 18,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    ann.title,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 13,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    '${ann.date.day}/${ann.date.month}/${ann.date.year}',
-                                    style: const TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            StatusChip(
-                              label: ann.type.toUpperCase(),
-                              color: _getAnnouncementColor(ann.type),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            // Indicators
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                announcements.length,
-                (index) => Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
-                  width: _currentPage == index ? 12 : 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(3),
-                    color: _currentPage == index 
-                        ? AppColors.primary 
-                        : AppColors.primary.withValues(alpha: 0.2),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
-        );
-      }
-    );
-  }
-
-  Color _getAnnouncementColor(String type) {
-    switch (type) {
-      case 'alert':
-        return AppColors.error;
-      case 'event':
-        return AppColors.info;
-      case 'circular':
-        return AppColors.accent;
-      default:
-        return AppColors.success;
-    }
-  }
-
-  IconData _getAnnouncementIcon(String type) {
-    switch (type) {
-      case 'alert':
-        return Icons.warning_amber;
-      case 'event':
-        return Icons.celebration;
-      case 'circular':
-        return Icons.mail;
-      default:
-        return Icons.info_outline;
-    }
   }
 }
