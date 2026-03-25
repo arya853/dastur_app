@@ -9,6 +9,7 @@ import '../../services/mock_data_service.dart';
 import '../../services/data_seeder_service.dart';
 
 import '../../widgets/app_drawer.dart';
+import '../../widgets/announcement_carousel.dart';
 
 /// Admin Dashboard Screen
 ///
@@ -82,6 +83,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ]),
             )),
           )),
+          // ── Announcement Carousel ──
+          SliverToBoxAdapter(
+            child: AnnouncementCarousel(
+              userRole: authService.currentUser?.role ?? 'admin',
+            ),
+          ),
+
           // Management Grid
           const SliverToBoxAdapter(child: SectionHeader(title: 'Management')),
           SliverPadding(
