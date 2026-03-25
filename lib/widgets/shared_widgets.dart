@@ -13,8 +13,11 @@ class NotificationBadge extends StatelessWidget {
     final controller = Provider.of<NotificationController>(context, listen: false);
     final authService = Provider.of<AuthService>(context, listen: false);
     final studentData = authService.studentProfile;
+    final userRole = authService.currentUser?.role ?? 'parent';
     
     if (studentData == null) {
+      // If it's a teacher, we just show the badge-less icon for now
+      // Click still goes to /notifications which we've updated to show announcements.
       return _buildIconOnly(context);
     }
     

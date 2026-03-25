@@ -24,7 +24,19 @@ class NotificationTile extends StatelessWidget {
         if (!notification.isRead) {
           controller.markAsRead(grade, grNo, notification.id);
         }
-        _showNotificationDetails(context);
+        
+        final type = notification.type.toLowerCase();
+        final isAnnouncementType = type == 'announcement' || 
+                                   type == 'event' || 
+                                   type == 'circular' || 
+                                   type == 'alert' || 
+                                   type == 'notice';
+        
+        if (isAnnouncementType) {
+          Navigator.pushNamed(context, '/announcements');
+        } else {
+          _showNotificationDetails(context);
+        }
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -231,7 +243,7 @@ class NotificationTile extends StatelessWidget {
     IconData iconData;
     Color iconColor;
 
-    switch (notification.type) {
+    switch (notification.type.toLowerCase()) {
       case 'attendance':
         iconData = Icons.fact_check;
         iconColor = AppColors.success;
