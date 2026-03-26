@@ -9,6 +9,9 @@ import '../../services/teacher_notification_service.dart';
 import '../../services/auth_service.dart';
 
 
+import '../../services/attendance_service.dart';
+import 'package:intl/intl.dart';
+
 /// Mark Attendance Screen – teacher selects class and marks each student.
 class MarkAttendanceScreen extends StatefulWidget {
   const MarkAttendanceScreen({super.key});
@@ -19,9 +22,11 @@ class MarkAttendanceScreen extends StatefulWidget {
 class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
   final Map<String, String> _attendance = {}; // studentId -> status
   bool _initialized = false;
+  bool _isSubmitting = false;
   String? _grade;
   String? _teacherClass;
   String? _teacherDiv;
+  List<Map<String, dynamic>> _students = [];
 
   Future<void> _initialize(BuildContext context) async {
     if (_initialized) return;
@@ -39,16 +44,87 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
       else if (_teacherClass == '8' || _teacherClass == 'VIII') _grade = 'grade8';
       else _grade = 'grade5';
 
-      // Prefill attendance once we have students (we'll do this in the builder or after fetch)
+      if (_grade != null && _teacherDiv != null) {
+        await _fetchStudents();
+      }
     }
     
     setState(() => _initialized = true);
+  }
+
+  Future<void> _fetchStudents() async {
+    try {
+      final attendanceService = AttendanceService();
+      final students = await attendanceService.fetchStudentsForClass(_grade!, _teacherDiv!);
+      setState(() {
+        _students = students;
+        for (var s in _students) {
+          _attendance[s['id']] = 'present';
+        }
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+      }
+    }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _initialize(context);
+  }
+
+  Future<void> _submitAttendance() async {
+    if (_students.isEmpty || _isSubmitting) return;
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final notificationService = Provider.of<TeacherNotificationService>(context, listen: false);
+      final attendanceService = AttendanceService();
+      
+      final teacherEmail = authService.currentUser?.email ?? '';
+      final dateId = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+      // Batch submit (not using WriteBatch for simplicity in loop, but each is a setDoc)
+      for (var s in _students) {
+        final studentId = s['id'];
+        final status = _attendance[studentId] ?? 'present';
+        
+        await attendanceService.markAttendance(
+          grade: _grade!,
+          div: _teacherDiv!,
+          grNo: studentId,
+          dateId: dateId,
+          status: status,
+          teacherEmail: teacherEmail,
+        );
+      }
+
+      await notificationService.sendNotificationToClass(
+        teacherEmail: teacherEmail,
+        title: 'Attendance Updated',
+        message: 'Attendance for Class $_teacherClass-$_teacherDiv has been marked for today.',
+        type: 'attendance',
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Attendance submitted & parents notified!'), backgroundColor: Colors.green)
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red)
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 
   @override
@@ -69,38 +145,18 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
         ),
         // Student list
         Expanded(
-          child: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('students')
-                .doc(_grade)
-                .collection('DIV_A')
-                .where('CLASS', isEqualTo: _teacherClass)
-                .where('DIV', isEqualTo: _teacherDiv)
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
-              
-              final docs = snapshot.data?.docs ?? [];
-              if (docs.isEmpty) {
-                return const EmptyState(icon: Icons.people_outline, message: 'No students found for your class.');
-              }
-
-              return ListView.builder(
+          child: _students.isEmpty 
+            ? const EmptyState(icon: Icons.people_outline, message: 'No students found for your class.')
+            : ListView.builder(
                 padding: const EdgeInsets.all(16),
-                itemCount: docs.length,
+                itemCount: _students.length,
                 itemBuilder: (context, i) {
-                  final s = docs[i].data() as Map<String, dynamic>;
-                  final studentId = docs[i].id;
+                  final s = _students[i];
+                  final studentId = s['id'];
                   final name = s['NAME'] ?? s['name'] ?? 'No Name';
                   final roll = s['rollNo'] ?? s['ROLL NO.'] ?? 'N/A';
                   
-                  // Initialize if not present
-                  _attendance.putIfAbsent(studentId, () => 'present');
-                  
-                  final status = _attendance[studentId]!;
+                  final status = _attendance[studentId] ?? 'present';
                   
                   return Container(
                     margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.all(12),
@@ -122,38 +178,17 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
                     ]),
                   );
                 },
-              );
-            }
-          ),
+              ),
         ),
         // Submit button
         Container(
           padding: const EdgeInsets.all(16), color: AppColors.surface,
           child: SizedBox(width: double.infinity, height: 48,
             child: ElevatedButton(
-              onPressed: () async {
-                final notificationService = Provider.of<TeacherNotificationService>(context, listen: false);
-                final authService = Provider.of<AuthService>(context, listen: false);
-                
-                try {
-                  await notificationService.sendNotificationToClass(
-                    teacherEmail: authService.currentUser?.email ?? '',
-                    title: 'Attendance Updated',
-                    message: 'Attendance for Class $_teacherClass-$_teacherDiv has been marked for today.',
-                    type: 'attendance',
-                  );
-
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Attendance submitted & parents notified!'), backgroundColor: Colors.green));
-                    Navigator.pop(context);
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
-                  }
-                }
-              },
-              child: const Text('Submit Attendance'),
+              onPressed: _isSubmitting ? null : _submitAttendance,
+              child: _isSubmitting 
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Text('Submit Attendance'),
             ),
           ),
         ),

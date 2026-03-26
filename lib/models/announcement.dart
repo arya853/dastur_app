@@ -51,6 +51,20 @@ class Announcement {
     );
   }
 
+  factory Announcement.fromNotification(dynamic notification) {
+    // We use dynamic to avoid circular dependency if possible, or just import AppNotification
+    return Announcement(
+      id: notification.id,
+      title: notification.title,
+      body: notification.message,
+      date: notification.timestamp,
+      type: notification.type.toLowerCase(),
+      authorId: notification.senderEmail,
+      authorName: notification.senderRole.toUpperCase(),
+      createdAt: notification.timestamp,
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'title': title,

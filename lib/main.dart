@@ -43,7 +43,7 @@ import 'screens/shared/quizzes_screen.dart';
 import 'screens/shared/practice_papers_screen.dart';
 import 'screens/shared/home_work_screen.dart';
 import 'screens/shared/fees_screen.dart';
-import 'screens/shared/attendance_screen.dart';
+import 'screens/shared/student_attendance_screen.dart';
 import 'screens/shared/timetable_screen.dart';
 import 'screens/shared/profile_screen.dart';
 import 'screens/shared/parent_id_card_screen.dart';
@@ -165,7 +165,7 @@ class DasturParentPortalApp extends StatelessWidget {
           '/practice-papers': (_) => const PracticePapersScreen(),
           '/home-work': (_) => const HomeWorkScreen(),
           '/fees': (_) => const FeesScreen(),
-          '/attendance': (_) => const AttendanceScreen(),
+          '/attendance': (_) => const StudentAttendanceScreen(),
           '/timetable': (_) => const TimetableScreen(),
           '/exam-timetable': (_) => const ExamTimetableScreen(),
           '/profile': (_) => const ProfileScreen(),

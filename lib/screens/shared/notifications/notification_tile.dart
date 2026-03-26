@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/app_colors.dart';
 import '../../../../models/notification.dart';
+import '../../../../models/announcement.dart';
 import '../../../../controllers/notification_controller.dart';
 
 class NotificationTile extends StatelessWidget {
@@ -33,7 +34,14 @@ class NotificationTile extends StatelessWidget {
                                    type == 'notice';
         
         if (isAnnouncementType) {
-          Navigator.pushNamed(context, '/announcements');
+          // Push the list first, replacing the notification screen so back goes to dashboard
+          Navigator.pushReplacementNamed(context, '/announcements');
+          // Then push the detail
+          Navigator.pushNamed(
+            context, 
+            '/announcement-detail', 
+            arguments: Announcement.fromNotification(notification),
+          );
         } else {
           _showNotificationDetails(context);
         }
