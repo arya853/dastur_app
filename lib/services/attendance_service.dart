@@ -74,4 +74,68 @@ class AttendanceService {
         .where('date', isLessThanOrEqualTo: Timestamp.fromDate(monthEnd))
         .snapshots();
   }
+
+  /// Fetches the attendance summary for a class on a specific date.
+  Future<Map<String, dynamic>?> fetchAttendanceSummary(String grade, String div, String dateId) async {
+    try {
+      final doc = await _db.collection('attendance_summaries').doc('${grade}_${div}_$dateId').get();
+      return doc.data();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Saves the attendance summary for a class on a specific date.
+  Future<void> saveAttendanceSummary({
+    required String grade,
+    required String div,
+    required String dateId,
+    required String teacherName,
+    required String teacherEmail,
+  }) async {
+    try {
+      await _db.collection('attendance_summaries').doc('${grade}_${div}_$dateId').set({
+        'grade': grade,
+        'div': div,
+        'dateId': dateId,
+        'submittedAt': FieldValue.serverTimestamp(),
+        'submittedBy': teacherName,
+        'teacherEmail': teacherEmail,
+        'status': 'submitted',
+      });
+    } catch (e) {
+      throw 'Failed to save attendance summary: $e';
+    }
+  }
+
+  /// Fetches attendance records for all students in a class for a specific date.
+  Future<Map<String, String>> fetchClassAttendance(String grade, String div, String dateId) async {
+    final students = await fetchStudentsForClass(grade, div);
+    final attendanceMap = <String, String>{};
+    
+    final futures = students.map((s) async {
+      final grNo = s['id'];
+      final doc = await _db
+          .collection('students')
+          .doc(grade)
+          .collection('DIV_$div')
+          .doc(grNo)
+          .collection('attendance')
+          .doc(dateId)
+          .get();
+      
+      if (doc.exists) {
+        return MapEntry(grNo, doc.data()?['status'] as String? ?? 'present');
+      }
+      return null;
+    });
+
+    final results = await Future.wait(futures);
+    for (var res in results) {
+      if (res != null) {
+        attendanceMap[res.key] = res.value;
+      }
+    }
+    return attendanceMap;
+  }
 }

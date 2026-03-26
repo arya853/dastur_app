@@ -27,6 +27,16 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
   String? _teacherClass;
   String? _teacherDiv;
   List<Map<String, dynamic>> _students = [];
+  
+  // New State variables
+  String _attendanceStatus = 'not_marked'; // 'not_marked' | 'submitted' | 'editing'
+  DateTime _selectedDate = DateTime.now();
+  String? _submittedAt;
+  String? _submittedBy;
+  String _activeFilter = 'all';
+  bool _showFilterRow = false;
+  String _searchQuery = '';
+  String? _errorBanner;
 
   Future<void> _initialize(BuildContext context) async {
     if (_initialized) return;
@@ -55,11 +65,35 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
   Future<void> _fetchStudents() async {
     try {
       final attendanceService = AttendanceService();
+      final dateId = DateFormat('yyyy-MM-dd').format(_selectedDate);
+      
       final students = await attendanceService.fetchStudentsForClass(_grade!, _teacherDiv!);
+      
+      // Fetch existing attendance summary and detailed records
+      final summary = await attendanceService.fetchAttendanceSummary(_grade!, _teacherDiv!, dateId);
+      final existingAttendance = await attendanceService.fetchClassAttendance(_grade!, _teacherDiv!, dateId);
+
       setState(() {
         _students = students;
-        for (var s in _students) {
-          _attendance[s['id']] = 'present';
+        _attendance.clear();
+        
+        if (summary != null) {
+          _attendanceStatus = 'submitted';
+          _submittedBy = summary['submittedBy'];
+          if (summary['submittedAt'] != null) {
+            final dt = (summary['submittedAt'] as Timestamp).toDate();
+            _submittedAt = DateFormat('hh:mm a').format(dt);
+          }
+          for (var s in _students) {
+            _attendance[s['id']] = existingAttendance[s['id']] ?? 'present';
+          }
+        } else {
+          _attendanceStatus = 'not_marked';
+          _submittedBy = null;
+          _submittedAt = null;
+          for (var s in _students) {
+            _attendance[s['id']] = 'present';
+          }
         }
       });
     } catch (e) {
@@ -75,10 +109,135 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
     _initialize(context);
   }
 
+  void _validateAndSubmit() {
+    if (_attendanceStatus == 'submitted') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Already submitted. Tap Edit to make changes.'))
+      );
+      return;
+    }
+
+    final unmarkedStudents = _students.where((s) => !_attendance.containsKey(s['id'])).toList();
+    if (unmarkedStudents.isNotEmpty) {
+      _showUnmarkedDialog(unmarkedStudents.length);
+    } else {
+      _showConfirmationDialog();
+    }
+  }
+
+  void _showUnmarkedDialog(int count) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('$count students not marked yet', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      setState(() {
+                        _activeFilter = 'unmarked';
+                        _showFilterRow = true;
+                      });
+                    },
+                    child: const Text('Review Students'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _autoMarkPresentAndSubmit();
+                    },
+                    child: const Text('Auto-mark Present'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _autoMarkPresentAndSubmit() {
+    setState(() {
+      for (var s in _students) {
+        if (!_attendance.containsKey(s['id'])) {
+          _attendance[s['id']] = 'present';
+        }
+      }
+    });
+    _showConfirmationDialog();
+  }
+
+  void _showConfirmationDialog() {
+    int p = 0, a = 0, l = 0;
+    for (var v in _attendance.values) {
+      if (v == 'present') p++;
+      else if (v == 'absent') a++;
+      else if (v == 'leave') l++;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Submit Attendance?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _confirmRow('Present:', '$p', AppColors.statusPresent),
+            _confirmRow('Absent:', '$a', AppColors.statusAbsent),
+            _confirmRow('Leave:', '$l', AppColors.statusLeave),
+            const Divider(height: 24),
+            Text('Date: ${DateFormat('d MMMM yyyy').format(_selectedDate)}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            Text('Class: Class $_teacherClass — Division $_teacherDiv', style: const TextStyle(fontSize: 13)),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _submitAttendance();
+            }, 
+            child: const Text('Confirm Submit')
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _confirmRow(String label, String val, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 14)),
+          Text(val, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 14)),
+        ],
+      ),
+    );
+  }
+
   Future<void> _submitAttendance() async {
     if (_students.isEmpty || _isSubmitting) return;
 
-    setState(() => _isSubmitting = true);
+    setState(() {
+      _isSubmitting = true;
+      _errorBanner = null;
+    });
 
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
@@ -86,9 +245,10 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
       final attendanceService = AttendanceService();
       
       final teacherEmail = authService.currentUser?.email ?? '';
-      final dateId = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      final now = DateTime.now();
+      final dateId = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
-      // Batch submit (not using WriteBatch for simplicity in loop, but each is a setDoc)
+      // Batch submit
       for (var s in _students) {
         final studentId = s['id'];
         final status = _attendance[studentId] ?? 'present';
@@ -103,6 +263,15 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
         );
       }
 
+      final teacherName = authService.teacherProfile?['NAME'] ?? 'Teacher';
+      await attendanceService.saveAttendanceSummary(
+        grade: _grade!,
+        div: _teacherDiv!,
+        dateId: dateId,
+        teacherName: teacherName,
+        teacherEmail: teacherEmail,
+      );
+
       await notificationService.sendNotificationToClass(
         teacherEmail: teacherEmail,
         title: 'Attendance Updated',
@@ -112,56 +281,108 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Attendance submitted & parents notified!'), backgroundColor: Colors.green)
+          SnackBar(content: Text(_attendanceStatus == 'editing' ? 'Attendance Updated ✓' : 'Attendance submitted & parents notified!'), backgroundColor: Colors.green)
         );
-        Navigator.pop(context);
+        setState(() {
+          _attendanceStatus = 'submitted';
+          _submittedAt = DateFormat('hh:mm a').format(now);
+          _submittedBy = teacherName;
+        });
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red)
-        );
+        setState(() => _errorBanner = 'Submission failed. Check your connection.');
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
-  @override
   Widget build(BuildContext context) {
     if (!_initialized) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     if (_teacherClass == null) return const Scaffold(body: Center(child: Text('Teacher class not assigned.')));
 
     return Scaffold(
-      appBar: const GradientAppBar(title: 'Mark Attendance', showBackButton: true),
+      appBar: _buildAppBar(),
       backgroundColor: AppColors.background,
-      body: Column(children: [
-        Container(
-          height: 50, color: AppColors.surface,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Text('Class: $_teacherClass | Div: $_teacherDiv', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
-          ),
-        ),
-        // Student list
-        Expanded(
-          child: _students.isEmpty 
-            ? const EmptyState(icon: Icons.people_outline, message: 'No students found for your class.')
-            : ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: _students.length,
-                itemBuilder: (context, i) {
-                  final s = _students[i];
+      body: Stack(
+        children: [
+          Column(children: [
+            _buildErrorBanner(),
+            _buildQuickActionBar(),
+            _buildSummaryBar(),
+            _buildAttendancePercentage(),
+            if (_showFilterRow) _buildFilterRow(),
+            _buildSearchBar(),
+            // Student list
+            Expanded(
+              child: _students.isEmpty 
+                ? const EmptyState(icon: Icons.people_outline, message: 'No students found for your class.')
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _students.where((s) {
+                      final nameMatch = (s['NAME'] ?? s['name'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase());
+                      final rollMatch = (s['rollNo'] ?? s['ROLL NO.'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase());
+                      
+                      bool filterMatch = _activeFilter == 'all';
+                      if (_activeFilter == 'unmarked') {
+                        filterMatch = !_attendance.containsKey(s['id']);
+                      } else {
+                        filterMatch = _activeFilter == 'all' || _attendance[s['id']] == _activeFilter;
+                      }
+                      
+                      return (nameMatch || rollMatch) && filterMatch;
+                    }).length,
+                    itemBuilder: (context, i) {
+                      final filtered = _students.where((s) {
+                        final nameMatch = (s['NAME'] ?? s['name'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase());
+                        final rollMatch = (s['rollNo'] ?? s['ROLL NO.'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase());
+                        
+                        bool filterMatch = _activeFilter == 'all';
+                        if (_activeFilter == 'unmarked') {
+                          filterMatch = !_attendance.containsKey(s['id']);
+                        } else {
+                          filterMatch = _activeFilter == 'all' || _attendance[s['id']] == _activeFilter;
+                        }
+
+                        return (nameMatch || rollMatch) && filterMatch;
+                      }).toList();
+                      final s = filtered[i];
                   final studentId = s['id'];
                   final name = s['NAME'] ?? s['name'] ?? 'No Name';
                   final roll = s['rollNo'] ?? s['ROLL NO.'] ?? 'N/A';
                   
-                  final status = _attendance[studentId] ?? 'present';
+                  final status = _attendance[studentId] ?? 'unmarked';
                   
+                  // Section 1: Row Tinting & Border
+                  Color bgColor;
+                  Color borderColor;
+                  switch (status) {
+                    case 'present':
+                      bgColor = const Color(0xFFE8F5E9);
+                      borderColor = Colors.green.shade200;
+                      break;
+                    case 'absent':
+                      bgColor = const Color(0xFFFFEBEE);
+                      borderColor = Colors.red.shade200;
+                      break;
+                    case 'leave':
+                      bgColor = const Color(0xFFFFFDE7);
+                      borderColor = Colors.amber.shade200;
+                      break;
+                    default:
+                      bgColor = AppColors.surface;
+                      borderColor = AppColors.border;
+                  }
+
                   return Container(
                     margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppConstants.radiusMd),
-                      boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))]),
+                    decoration: BoxDecoration(
+                      color: bgColor, 
+                      borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                      border: Border.all(color: borderColor, width: 1.5),
+                      boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))],
+                    ),
                     child: Row(children: [
                       CircleAvatar(radius: 18, backgroundColor: AppColors.accent.withValues(alpha: 0.12),
                         child: Text(name.isNotEmpty ? name[0] : 'S', style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.accent))),
@@ -180,34 +401,487 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
                 },
               ),
         ),
-        // Submit button
-        Container(
-          padding: const EdgeInsets.all(16), color: AppColors.surface,
-          child: SizedBox(width: double.infinity, height: 48,
-            child: ElevatedButton(
-              onPressed: _isSubmitting ? null : _submitAttendance,
-              child: _isSubmitting 
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Text('Submit Attendance'),
+        // Bottom area (Submit button or Submitted card)
+        _attendanceStatus == 'submitted' 
+          ? _buildSubmittedBottomCard() 
+          : _buildSubmitButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubmitButton() {
+    final bool isEditing = _attendanceStatus == 'editing';
+    return Positioned(
+      bottom: 0, left: 0, right: 0,
+      child: Container(
+        padding: const EdgeInsets.all(16), border: const Border(top: BorderSide(color: AppColors.border)),
+        color: AppColors.surface,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isEditing) 
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: Text('Editing mode — changes not saved yet', style: TextStyle(color: AppColors.warning, fontSize: 12, fontWeight: FontWeight.bold)),
+              ),
+            SizedBox(width: double.infinity, height: 50,
+              child: ElevatedButton(
+                onPressed: _isSubmitting ? null : _validateAndSubmit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isEditing ? AppColors.warning : AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: _isSubmitting 
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : Text(isEditing ? 'Save Changes' : 'Submit Attendance'),
+              ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubmittedBottomCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      color: AppColors.surface,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.statusPresent.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.statusPresent.withOpacity(0.2)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Text('Attendance Submitted ', style: TextStyle(color: AppColors.statusPresent, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Icon(Icons.check, color: AppColors.statusPresent, size: 18),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text('Submitted at $_submittedAt • $_submittedBy', 
+                    style: const TextStyle(color: AppColors.statusPresent, fontSize: 12)),
+                ],
+              ),
+            ),
+            OutlinedButton(
+              onPressed: () => setState(() => _attendanceStatus = 'editing'),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppColors.statusPresent),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Edit', style: TextStyle(color: AppColors.statusPresent)),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 8),
+      Center(child: Text('Last updated $_submittedAt ✓', style: const TextStyle(color: AppColors.textSubtle, fontSize: 11))),
+    );
+  }
+
+  Widget _buildErrorBanner() {
+    if (_errorBanner == null) return const SizedBox.shrink();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      color: Colors.red.shade600,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Expanded(child: Text('Submission failed. Check your connection.', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500))),
+          TextButton(
+            onPressed: _submitAttendance,
+            child: const Text('Retry', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// REDESIGNED APPBAR (Section 1 & 2)
+  PreferredSizeWidget _buildAppBar() {
+    final dateStr = DateFormat('EEEE • d MMMM yyyy').format(_selectedDate);
+    final isToday = DateFormat('yyyy-MM-dd').format(_selectedDate) == DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(170),
+      child: Container(
+        decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Top row: Back button, Title, Calendar icon
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  const Expanded(
+                    child: Center(
+                      child: Text('Mark Attendance', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.calendar_month, color: Colors.white),
+                    onPressed: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: _selectedDate,
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime.now(),
+                      );
+                      if (date != null) {
+                        setState(() => _selectedDate = date);
+                        _fetchStudents();
+                      }
+                    },
+                  ),
+                ],
+              ),
+              // Class & Division Header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Class $_teacherClass — Division $_teacherDiv', 
+                      style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(dateStr, style: const TextStyle(color: AppColors.textOnDarkMuted, fontSize: 13)),
+                    const SizedBox(height: 8),
+                    _buildStatusBadge(),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              // Date Navigation row (Section 2)
+              _buildDateNav(isToday),
+              const SizedBox(height: 12),
+            ],
           ),
         ),
-      ]),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge() {
+    Color color;
+    String label;
+    switch (_attendanceStatus) {
+      case 'submitted':
+        color = AppColors.statusPresent;
+        label = 'Submitted';
+        break;
+      case 'editing':
+        color = AppColors.info;
+        label = 'Editing';
+        break;
+      default:
+        color = AppColors.statusAbsent;
+        label = 'Not Marked';
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+              const SizedBox(width: 8),
+              Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+        if (_attendanceStatus == 'submitted' && _submittedAt != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4, left: 4),
+            child: Text('Submitted at $_submittedAt • by $_submittedBy', 
+              style: const TextStyle(color: AppColors.textOnDarkMuted, fontSize: 11)),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildDateNav(bool isToday) {
+    final prevDate = _selectedDate.subtract(const Duration(days: 1));
+    final nextDate = _selectedDate.add(const Duration(days: 1));
+    final isNextDisabled = DateFormat('yyyy-MM-dd').format(_selectedDate) == DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _dateNavBtn('‹ ${DateFormat('d MMM').format(prevDate)}', () {
+            setState(() => _selectedDate = prevDate);
+            _fetchStudents();
+          }, true),
+          Text(isToday ? 'Today' : DateFormat('d MMM').format(_selectedDate), 
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+          _dateNavBtn('${DateFormat('d MMM').format(nextDate)} ›', () {
+            if (!isNextDisabled) {
+              setState(() => _selectedDate = nextDate);
+              _fetchStudents();
+            }
+          }, !isNextDisabled),
+        ],
+      ),
+    );
+  }
+
+  Widget _dateNavBtn(String label, VoidCallback onTap, bool enabled) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.white.withOpacity(enabled ? 0.3 : 0.1)),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(label, style: TextStyle(color: Colors.white.withOpacity(enabled ? 1 : 0.4), fontSize: 13)),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      color: AppColors.background,
+      child: Row(
+        children: [
+          _quickActionBtn(Icons.check_circle_outline, 'Mark All Present', _markAllPresent),
+          const SizedBox(width: 10),
+          _quickActionBtn(Icons.history, 'History', () {
+             Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceHistoryScreen()));
+          }),
+          const SizedBox(width: 10),
+          _quickActionBtn(Icons.filter_list, 'Filter', () {
+            setState(() => _showFilterRow = !_showFilterRow);
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _quickActionBtn(IconData icon, String label, VoidCallback onTap) {
+    return Expanded(
+      child: OutlinedButton(
+        onPressed: onTap,
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          side: const BorderSide(color: AppColors.border),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          backgroundColor: AppColors.surface,
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 18, color: AppColors.primary),
+            const SizedBox(height: 4),
+            Text(label, style: const TextStyle(fontSize: 10, color: AppColors.primary, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _markAllPresent() {
+    setState(() {
+      for (var s in _students) {
+        _attendance[s['id']] = 'present';
+      }
+      if (_attendanceStatus == 'submitted') {
+        _attendanceStatus = 'editing';
+      }
+    });
+  }
+
+  Widget _buildSummaryBar() {
+    int present = 0, absent = 0, leave = 0;
+    for (var status in _attendance.values) {
+      if (status == 'present') present++;
+      else if (status == 'absent') absent++;
+      else if (status == 'leave') leave++;
+    }
+    final total = _students.length;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          _summaryCard(present.toString(), 'PRESENT', AppColors.statusPresent),
+          const SizedBox(width: 10),
+          _summaryCard(absent.toString(), 'ABSENT', AppColors.statusAbsent),
+          const SizedBox(width: 10),
+          _summaryCard(leave.toString(), 'LEAVE', AppColors.statusLeave),
+          const SizedBox(width: 10),
+          _summaryCard(total.toString(), 'TOTAL', AppColors.primary),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryCard(String value, String label, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          children: [
+            Text(value, style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.bold)),
+            Text(label, style: TextStyle(color: color.withOpacity(0.6), fontSize: 9, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterRow() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: ['All', 'Present', 'Absent', 'Leave'].map((f) {
+            final active = _activeFilter == f.toLowerCase();
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilterChip(
+                selected: active,
+                label: Text(f),
+                onSelected: (val) => setState(() => _activeFilter = f.toLowerCase()),
+                selectedColor: AppColors.primary.withOpacity(0.1),
+                checkmarkColor: AppColors.primary,
+                labelStyle: TextStyle(color: active ? AppColors.primary : AppColors.textSecondary, fontSize: 13),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAttendancePercentage() {
+    int present = 0;
+    for (var status in _attendance.values) {
+      if (status == 'present') present++;
+    }
+    final total = _students.length;
+    if (total == 0) return const SizedBox.shrink();
+    
+    final percent = ((present / total) * 100).toInt();
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Row(
+        children: [
+          Text('Class attendance today: ', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+          Text('$percent%', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: TextField(
+        onChanged: (val) => setState(() => _searchQuery = val),
+        decoration: InputDecoration(
+          hintText: 'Search by name or roll no...',
+          prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.textSubtle),
+          filled: true,
+          fillColor: AppColors.primary.withOpacity(0.05),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        ),
+      ),
     );
   }
 
   Widget _statusBtn(String label, String status, String current, String studentId, Color color) {
     final selected = current == status;
+    final bool isDisabled = _isSubmitting || _attendanceStatus == 'submitted';
+
     return GestureDetector(
-      onTap: () => setState(() => _attendance[studentId] = status),
+      onTap: isDisabled ? null : () {
+        final previousStatus = _attendance[studentId];
+        setState(() {
+          _attendance[studentId] = status;
+          if (_attendanceStatus == 'submitted') _attendanceStatus = 'editing';
+        });
+
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Marked ${status[0].toUpperCase()}${status.substring(1)}'),
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'Undo',
+              onPressed: () {
+                setState(() {
+                  if (previousStatus == null) {
+                    _attendance.remove(studentId);
+                  } else {
+                    _attendance[studentId] = previousStatus;
+                  }
+                });
+              },
+            ),
+          ),
+        );
+      },
       child: Container(
         width: 32, height: 32,
         decoration: BoxDecoration(
           color: selected ? color : Colors.transparent,
           shape: BoxShape.circle,
-          border: Border.all(color: color, width: 2),
+          border: Border.all(color: color.withOpacity(isDisabled ? 0.3 : 1), width: 2),
         ),
-        child: Center(child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: selected ? Colors.white : color))),
+        child: Center(child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: selected ? Colors.white : color.withOpacity(isDisabled ? 0.3 : 1)))),
+      ),
+    );
+  }
+}
+
+/// Placeholder for Attendance History Screen
+class AttendanceHistoryScreen extends StatelessWidget {
+  const AttendanceHistoryScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: const GradientAppBar(title: 'Attendance History', showBackButton: true),
+      body: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.history, size: 64, color: AppColors.textSubtle),
+            SizedBox(height: 16),
+            Text('Attendance History coming soon!', style: TextStyle(color: AppColors.textSecondary)),
+          ],
+        ),
       ),
     );
   }
