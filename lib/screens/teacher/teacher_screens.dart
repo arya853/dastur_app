@@ -334,6 +334,7 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
             // Student list
             Expanded(
               child: _students.isEmpty 
+                ? const EmptyState(icon: Icons.people_outline, message: 'No students found for your class.')
                 : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 130),
                     itemCount: _students.length,
