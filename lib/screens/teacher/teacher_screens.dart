@@ -33,8 +33,6 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
   DateTime _selectedDate = DateTime.now();
   String? _submittedAt;
   String? _submittedBy;
-  String _activeFilter = 'all';
-  bool _showFilterRow = false;
   String? _errorBanner;
 
   Future<void> _initialize(BuildContext context) async {
@@ -308,36 +306,17 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
         children: [
           Column(children: [
             _buildErrorBanner(),
-            _buildQuickActionBar(),
             _buildSummaryBar(),
             _buildAttendancePercentage(),
-            if (_showFilterRow) _buildFilterRow(),
             // Student list
             Expanded(
               child: _students.isEmpty 
                 ? const EmptyState(icon: Icons.people_outline, message: 'No students found for your class.')
                 : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
-                    itemCount: _students.where((s) {
-                      bool filterMatch = _activeFilter == 'all';
-                      if (_activeFilter == 'unmarked') {
-                        filterMatch = !_attendance.containsKey(s['id']);
-                      } else {
-                        filterMatch = _activeFilter == 'all' || _attendance[s['id']] == _activeFilter;
-                      }
-                      return filterMatch;
-                    }).length,
+                    itemCount: _students.length,
                     itemBuilder: (context, i) {
-                      final filtered = _students.where((s) {
-                        bool filterMatch = _activeFilter == 'all';
-                        if (_activeFilter == 'unmarked') {
-                          filterMatch = !_attendance.containsKey(s['id']);
-                        } else {
-                          filterMatch = _activeFilter == 'all' || _attendance[s['id']] == _activeFilter;
-                        }
-                        return filterMatch;
-                      }).toList();
-                      final s = filtered[i];
+                      final s = _students[i];
                   final studentId = s['id'];
                   final name = s['NAME'] ?? s['name'] ?? 'No Name';
                   final roll = s['rollNo'] ?? s['ROLL NO.'] ?? 'N/A';
@@ -540,6 +519,12 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
                     ),
                   ),
                   IconButton(
+                    icon: const Icon(Icons.history, color: Colors.white),
+                    onPressed: () {
+                       Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceHistoryScreen()));
+                    },
+                  ),
+                  IconButton(
                     icon: const Icon(Icons.calendar_month, color: Colors.white),
                     onPressed: () async {
                       final date = await showDatePicker(
@@ -666,58 +651,6 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
         child: Text(label, style: TextStyle(color: Colors.white.withOpacity(enabled ? 1 : 0.4), fontSize: 13)),
       ),
     );
-  }
-
-  Widget _buildQuickActionBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      color: AppColors.background,
-      child: Row(
-        children: [
-          _quickActionBtn(Icons.check_circle_outline, 'Mark All Present', _markAllPresent),
-          const SizedBox(width: 10),
-          _quickActionBtn(Icons.history, 'History', () {
-             Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceHistoryScreen()));
-          }),
-          const SizedBox(width: 10),
-          _quickActionBtn(Icons.filter_list, 'Filter', () {
-            setState(() => _showFilterRow = !_showFilterRow);
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _quickActionBtn(IconData icon, String label, VoidCallback onTap) {
-    return Expanded(
-      child: OutlinedButton(
-        onPressed: onTap,
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          side: const BorderSide(color: AppColors.border),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          backgroundColor: AppColors.surface,
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 18, color: AppColors.primary),
-            const SizedBox(height: 4),
-            Text(label, style: const TextStyle(fontSize: 10, color: AppColors.primary, fontWeight: FontWeight.bold)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _markAllPresent() {
-    setState(() {
-      for (var s in _students) {
-        _attendance[s['id']] = 'present';
-      }
-      if (_attendanceStatus == 'submitted') {
-        _attendanceStatus = 'editing';
-      }
-    });
   }
 
   Widget _buildSummaryBar() {
