@@ -12,6 +12,7 @@ class TeacherNotificationService {
     required String title,
     required String message,
     required String type,
+    List<String>? specificStudentIds,
   }) async {
     try {
       // 1. Fetch teacher details - Direct doc reference is fastest since ID is the email
@@ -55,10 +56,19 @@ class TeacherNotificationService {
         throw "No students found for Class $teacherClass Div $teacherDiv.";
       }
 
+      // Filter in memory for targeted sending
+      final targetDocs = specificStudentIds == null 
+        ? studentsSnapshot.docs 
+        : studentsSnapshot.docs.where((doc) => specificStudentIds.contains(doc.id)).toList();
+
+      if (targetDocs.isEmpty && specificStudentIds != null) {
+        throw "None of the selected students were found in the database.";
+      }
+
       // 4. Batch write notifications and trigger FCM
       final batch = _db.batch();
 
-      for (var studentDoc in studentsSnapshot.docs) {
+      for (var studentDoc in targetDocs) {
         final studentData = studentDoc.data();
         final fcmToken = studentData['fcmToken'];
 
