@@ -35,7 +35,6 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
   String? _submittedBy;
   String _activeFilter = 'all';
   bool _showFilterRow = false;
-  String _searchQuery = '';
   String? _errorBanner;
 
   Future<void> _initialize(BuildContext context) async {
@@ -313,7 +312,6 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
             _buildSummaryBar(),
             _buildAttendancePercentage(),
             if (_showFilterRow) _buildFilterRow(),
-            _buildSearchBar(),
             // Student list
             Expanded(
               child: _students.isEmpty 
@@ -321,31 +319,23 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
                 : ListView.builder(
                     padding: const EdgeInsets.all(16),
                     itemCount: _students.where((s) {
-                      final nameMatch = (s['NAME'] ?? s['name'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase());
-                      final rollMatch = (s['rollNo'] ?? s['ROLL NO.'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase());
-                      
                       bool filterMatch = _activeFilter == 'all';
                       if (_activeFilter == 'unmarked') {
                         filterMatch = !_attendance.containsKey(s['id']);
                       } else {
                         filterMatch = _activeFilter == 'all' || _attendance[s['id']] == _activeFilter;
                       }
-                      
-                      return (nameMatch || rollMatch) && filterMatch;
+                      return filterMatch;
                     }).length,
                     itemBuilder: (context, i) {
                       final filtered = _students.where((s) {
-                        final nameMatch = (s['NAME'] ?? s['name'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase());
-                        final rollMatch = (s['rollNo'] ?? s['ROLL NO.'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase());
-                        
                         bool filterMatch = _activeFilter == 'all';
                         if (_activeFilter == 'unmarked') {
                           filterMatch = !_attendance.containsKey(s['id']);
                         } else {
                           filterMatch = _activeFilter == 'all' || _attendance[s['id']] == _activeFilter;
                         }
-
-                        return (nameMatch || rollMatch) && filterMatch;
+                        return filterMatch;
                       }).toList();
                       final s = filtered[i];
                   final studentId = s['id'];
@@ -400,11 +390,12 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
                   );
                 },
               ),
-        ),
-        // Bottom area (Submit button or Submitted card)
-        _attendanceStatus == 'submitted' 
-          ? _buildSubmittedBottomCard() 
-          : _buildSubmitButton(),
+            ),
+          ]),
+          // Bottom area (Submit button or Submitted card)
+          _attendanceStatus == 'submitted' 
+            ? _buildSubmittedBottomCard() 
+            : _buildSubmitButton(),
         ],
       ),
     );
@@ -415,8 +406,11 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
     return Positioned(
       bottom: 0, left: 0, right: 0,
       child: Container(
-        padding: const EdgeInsets.all(16), border: const Border(top: BorderSide(color: AppColors.border)),
-        color: AppColors.surface,
+        padding: const EdgeInsets.all(16),
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          border: Border(top: BorderSide(color: AppColors.border)),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -448,45 +442,50 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       color: AppColors.surface,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.statusPresent.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.statusPresent.withOpacity(0.2)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.statusPresent.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.statusPresent.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('Attendance Submitted ', style: TextStyle(color: AppColors.statusPresent, fontWeight: FontWeight.bold, fontSize: 15)),
-                      Icon(Icons.check, color: AppColors.statusPresent, size: 18),
+                      const Row(
+                        children: [
+                          Text('Attendance Submitted ', style: TextStyle(color: AppColors.statusPresent, fontWeight: FontWeight.bold, fontSize: 15)),
+                          Icon(Icons.check, color: AppColors.statusPresent, size: 18),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text('Submitted at $_submittedAt • $_submittedBy', 
+                        style: const TextStyle(color: AppColors.statusPresent, fontSize: 12)),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text('Submitted at $_submittedAt • $_submittedBy', 
-                    style: const TextStyle(color: AppColors.statusPresent, fontSize: 12)),
-                ],
-              ),
+                ),
+                OutlinedButton(
+                  onPressed: () => setState(() => _attendanceStatus = 'editing'),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.statusPresent),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text('Edit', style: TextStyle(color: AppColors.statusPresent)),
+                ),
+              ],
             ),
-            OutlinedButton(
-              onPressed: () => setState(() => _attendanceStatus = 'editing'),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppColors.statusPresent),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              child: const Text('Edit', style: TextStyle(color: AppColors.statusPresent)),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 8),
+          Center(child: Text('Last updated $_submittedAt ✓', style: const TextStyle(color: AppColors.textSubtle, fontSize: 11))),
+        ],
       ),
-      const SizedBox(height: 8),
-      Center(child: Text('Last updated $_submittedAt ✓', style: const TextStyle(color: AppColors.textSubtle, fontSize: 11))),
     );
   }
 
@@ -515,7 +514,7 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
     final isToday = DateFormat('yyyy-MM-dd').format(_selectedDate) == DateFormat('yyyy-MM-dd').format(DateTime.now());
 
     return PreferredSize(
-      preferredSize: const Size.fromHeight(170),
+      preferredSize: const Size.fromHeight(190),
       child: Container(
         decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
         child: SafeArea(
@@ -552,15 +551,21 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
               ),
               // Class & Division Header
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('Class $_teacherClass — Division $_teacherDiv', 
-                      style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Text(dateStr, style: const TextStyle(color: AppColors.textOnDarkMuted, fontSize: 13)),
-                    const SizedBox(height: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Class $_teacherClass', 
+                          style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 2),
+                        Text('Division $_teacherDiv', 
+                          style: const TextStyle(color: AppColors.textOnDarkMuted, fontSize: 16, fontWeight: FontWeight.w500)),
+                      ],
+                    ),
                     _buildStatusBadge(),
                   ],
                 ),
@@ -611,12 +616,6 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
             ],
           ),
         ),
-        if (_attendanceStatus == 'submitted' && _submittedAt != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 4, left: 4),
-            child: Text('Submitted at $_submittedAt • by $_submittedBy', 
-              style: const TextStyle(color: AppColors.textOnDarkMuted, fontSize: 11)),
-          ),
       ],
     );
   }
@@ -799,23 +798,6 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
           Text('Class attendance today: ', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
           Text('$percent%', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13)),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSearchBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: TextField(
-        onChanged: (val) => setState(() => _searchQuery = val),
-        decoration: InputDecoration(
-          hintText: 'Search by name or roll no...',
-          prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.textSubtle),
-          filled: true,
-          fillColor: AppColors.primary.withOpacity(0.05),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-        ),
       ),
     );
   }
