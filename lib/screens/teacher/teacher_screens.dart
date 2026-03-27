@@ -577,9 +577,6 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
                         children: [
                           Text('Class $_teacherClass$suffix $_teacherDiv', 
                             style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 4),
-                          Text('Today • ${DateFormat('d MMM yyyy').format(_selectedDate)}', 
-                            style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13)),
                         ],
                       );
                     }),
@@ -709,16 +706,16 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
   Widget _summaryCard(String value, String label, Color color, Color bgColor) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           children: [
-            Text(value, style: TextStyle(color: color, fontSize: 22, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w500)),
+            Text(value, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 2),
+            Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w500)),
           ],
         ),
       ),
