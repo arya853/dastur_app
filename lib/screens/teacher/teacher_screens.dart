@@ -303,13 +303,15 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
           Column(children: [
             _buildErrorBanner(),
             _buildSummaryBar(),
+            const SizedBox(height: 4),
             _buildAttendancePercentage(),
+            const SizedBox(height: 8),
             // Student list
             Expanded(
               child: _students.isEmpty 
                 ? const EmptyState(icon: Icons.people_outline, message: 'No students found for your class.')
                 : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
                     itemCount: _students.length,
                     itemBuilder: (context, i) {
                       final s = _students[i];
@@ -381,10 +383,11 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
     return Positioned(
       bottom: 0, left: 0, right: 0,
       child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+        decoration: BoxDecoration(
           color: AppColors.surface,
-          border: Border(top: BorderSide(color: AppColors.border)),
+          border: Border(top: BorderSide(color: AppColors.border.withOpacity(0.5))),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -4))],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -394,17 +397,18 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
                 padding: EdgeInsets.only(bottom: 8),
                 child: Text('Editing mode — changes not saved yet', style: TextStyle(color: AppColors.warning, fontSize: 12, fontWeight: FontWeight.bold)),
               ),
-            SizedBox(width: double.infinity, height: 50,
+            SizedBox(width: double.infinity, height: 46,
               child: ElevatedButton(
                 onPressed: _isSubmitting ? null : _validateAndSubmit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: isEditing ? AppColors.warning : AppColors.primary,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: _isSubmitting 
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : Text(isEditing ? 'Save Changes' : 'Submit Attendance'),
+                  : Text(isEditing ? 'Save Changes' : 'Submit Attendance', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
               ),
             ),
           ],
@@ -417,17 +421,17 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
     return Positioned(
       bottom: 0, left: 0, right: 0,
       child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+        decoration: BoxDecoration(
           color: AppColors.surface,
-          border: Border(top: BorderSide(color: AppColors.border)),
-          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, -2))],
+          border: Border(top: BorderSide(color: AppColors.border.withOpacity(0.5))),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -4))],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: AppColors.statusPresent.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(12),
@@ -442,8 +446,8 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
                     children: [
                       const Row(
                         children: [
-                          Text('Attendance Submitted ', style: TextStyle(color: AppColors.statusPresent, fontWeight: FontWeight.bold, fontSize: 15)),
-                          Icon(Icons.check, color: AppColors.statusPresent, size: 18),
+                          Text('Attendance Submitted ', style: TextStyle(color: AppColors.statusPresent, fontWeight: FontWeight.bold, fontSize: 13)),
+                          Icon(Icons.check_circle_rounded, color: AppColors.statusPresent, size: 16),
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -458,7 +462,7 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
                     side: const BorderSide(color: AppColors.statusPresent),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  child: const Text('Edit', style: TextStyle(color: AppColors.statusPresent)),
+                  child: const Text('Edit', style: TextStyle(color: AppColors.statusPresent, fontWeight: FontWeight.bold, fontSize: 12)),
                 ),
               ],
             ),
@@ -496,7 +500,7 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
     final isToday = DateFormat('yyyy-MM-dd').format(_selectedDate) == DateFormat('yyyy-MM-dd').format(DateTime.now());
 
     return PreferredSize(
-      preferredSize: const Size.fromHeight(190),
+      preferredSize: const Size.fromHeight(160),
       child: Container(
         decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
         child: SafeArea(
@@ -548,10 +552,9 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('Class $_teacherClass', 
-                          style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 2),
+                          style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                         Text('Division $_teacherDiv', 
-                          style: const TextStyle(color: AppColors.textOnDarkMuted, fontSize: 16, fontWeight: FontWeight.w500)),
+                          style: const TextStyle(color: AppColors.textOnDarkMuted, fontSize: 14, fontWeight: FontWeight.w500)),
                       ],
                     ),
                     _buildStatusBadge(),
@@ -659,7 +662,7 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
     final total = _students.length;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Row(
         children: [
           _summaryCard(present.toString(), 'PRESENT', AppColors.statusPresent),
@@ -684,8 +687,8 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
         ),
         child: Column(
           children: [
-            Text(value, style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.bold)),
-            Text(label, style: TextStyle(color: color.withOpacity(0.6), fontSize: 9, fontWeight: FontWeight.bold)),
+            Text(value, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(label, style: TextStyle(color: color.withOpacity(0.6), fontSize: 8, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
