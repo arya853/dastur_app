@@ -139,12 +139,8 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
                   child: OutlinedButton(
                     onPressed: () {
                       Navigator.pop(context);
-                      setState(() {
-                        _activeFilter = 'unmarked';
-                        _showFilterRow = true;
-                      });
                     },
-                    child: const Text('Review Students'),
+                    child: const Text('Back to List'),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -696,30 +692,6 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
     );
   }
 
-  Widget _buildFilterRow() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: ['All', 'Present', 'Absent', 'Leave'].map((f) {
-            final active = _activeFilter == f.toLowerCase();
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: FilterChip(
-                selected: active,
-                label: Text(f),
-                onSelected: (val) => setState(() => _activeFilter = f.toLowerCase()),
-                selectedColor: AppColors.primary.withOpacity(0.1),
-                checkmarkColor: AppColors.primary,
-                labelStyle: TextStyle(color: active ? AppColors.primary : AppColors.textSecondary, fontSize: 13),
-              ),
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
 
   Widget _buildAttendancePercentage() {
     int present = 0;
