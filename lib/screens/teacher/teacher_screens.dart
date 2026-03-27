@@ -311,7 +311,7 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
               child: _students.isEmpty 
                 ? const EmptyState(icon: Icons.people_outline, message: 'No students found for your class.')
                 : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 150),
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 130),
                     itemCount: _students.length,
                     itemBuilder: (context, i) {
                       final s = _students[i];
@@ -450,6 +450,9 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
                           Icon(Icons.check_circle_rounded, color: AppColors.statusPresent, size: 16),
                         ],
                       ),
+                      const SizedBox(height: 4),
+                      Text('Submitted at $_submittedAt • $_submittedBy', 
+                        style: const TextStyle(color: AppColors.statusPresent, fontSize: 12)),
                     ],
                   ),
                 ),
@@ -464,8 +467,6 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 8),
-          Center(child: Text('Last updated $_submittedAt ✓', style: const TextStyle(color: AppColors.textSubtle, fontSize: 11))),
           ],
         ),
       ),
