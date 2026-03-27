@@ -552,8 +552,8 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
                       else if (_teacherClass == '2') suffix = 'nd';
                       else if (_teacherClass == '3') suffix = 'rd';
                       
-                      return Text('$_teacherClass$suffix $_teacherDiv', 
-                        style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold));
+                      return Text('Class $_teacherClass$suffix $_teacherDiv', 
+                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold));
                     }),
                     _buildStatusBadge(),
                   ],
