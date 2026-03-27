@@ -317,7 +317,7 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
               child: _students.isEmpty 
                 ? const EmptyState(icon: Icons.people_outline, message: 'No students found for your class.')
                 : ListView.builder(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
                     itemCount: _students.where((s) {
                       bool filterMatch = _activeFilter == 'all';
                       if (_activeFilter == 'unmarked') {
@@ -439,12 +439,18 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
   }
 
   Widget _buildSubmittedBottomCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      color: AppColors.surface,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+    return Positioned(
+      bottom: 0, left: 0, right: 0,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          border: Border(top: BorderSide(color: AppColors.border)),
+          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, -2))],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -484,7 +490,8 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
           ),
           const SizedBox(height: 8),
           Center(child: Text('Last updated $_submittedAt ✓', style: const TextStyle(color: AppColors.textSubtle, fontSize: 11))),
-        ],
+          ],
+        ),
       ),
     );
   }
