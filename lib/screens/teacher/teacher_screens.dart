@@ -546,15 +546,15 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Class $_teacherClass', 
-                          style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                        Text('Division $_teacherDiv', 
-                          style: const TextStyle(color: AppColors.textOnDarkMuted, fontSize: 14, fontWeight: FontWeight.w500)),
-                      ],
-                    ),
+                    Builder(builder: (context) {
+                      String suffix = 'th';
+                      if (_teacherClass == '1') suffix = 'st';
+                      else if (_teacherClass == '2') suffix = 'nd';
+                      else if (_teacherClass == '3') suffix = 'rd';
+                      
+                      return Text('$_teacherClass$suffix $_teacherDiv', 
+                        style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold));
+                    }),
                     _buildStatusBadge(),
                   ],
                 ),
