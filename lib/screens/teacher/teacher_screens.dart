@@ -767,25 +767,7 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
           if (_attendanceStatus == 'submitted') _attendanceStatus = 'editing';
         });
 
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Marked ${status[0].toUpperCase()}${status.substring(1)}'),
-            duration: const Duration(seconds: 4),
-            action: SnackBarAction(
-              label: 'Undo',
-              onPressed: () {
-                setState(() {
-                  if (previousStatus == null) {
-                    _attendance.remove(studentId);
-                  } else {
-                    _attendance[studentId] = previousStatus;
-                  }
-                });
-              },
-            ),
-          ),
-        );
+        // Removed Undo SnackBar as requested
       },
       child: Container(
         width: 36, height: 36,
