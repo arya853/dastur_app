@@ -19,6 +19,19 @@ class MarkAttendanceScreen extends StatefulWidget {
   State<MarkAttendanceScreen> createState() => _MarkAttendanceScreenState();
 }
 
+// UI Color Constants to match screenshot
+class _UIColors {
+  static const Color present = Color(0xFF00C853);
+  static const Color absent = Color(0xFFFF5252);
+  static const Color leave = Color(0xFFFFC107);
+  static const Color total = Color(0xFF9E9E9E);
+  
+  static const Color presentBG = Color(0xFFE8F5E9);
+  static const Color absentBG = Color(0xFFFFEBEE);
+  static const Color leaveBG = Color(0xFFFFF8E1);
+  static const Color totalBG = Color(0xFFF5F5F5);
+}
+
 class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
   final Map<String, String> _attendance = {}; // studentId -> status
   bool _initialized = false;
@@ -305,68 +318,77 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
             _buildSummaryBar(),
             const SizedBox(height: 4),
             _buildAttendancePercentage(),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
+            // Header for list
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
+              child: Row(
+                children: [
+                  const SizedBox(width: 24, child: Text('#', style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold))),
+                  const Expanded(child: Text('Student', style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold))),
+                  Text('Status', style: TextStyle(color: Colors.grey.shade400, fontSize: 11, fontWeight: FontWeight.bold)),
+                  const SizedBox(width: 100), // Space over buttons
+                ],
+              ),
+            ),
             // Student list
             Expanded(
               child: _students.isEmpty 
-                ? const EmptyState(icon: Icons.people_outline, message: 'No students found for your class.')
                 : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 130),
                     itemCount: _students.length,
                     itemBuilder: (context, i) {
                       final s = _students[i];
-                  final studentId = s['id'];
-                  final name = s['NAME'] ?? s['name'] ?? 'No Name';
-                  final roll = s['rollNo'] ?? s['ROLL NO.'] ?? 'N/A';
-                  
-                  final status = _attendance[studentId] ?? 'unmarked';
-                  
-                  // Section 1: Row Tinting & Border
-                  Color bgColor;
-                  Color borderColor;
-                  switch (status) {
-                    case 'present':
-                      bgColor = const Color(0xFFE8F5E9);
-                      borderColor = Colors.green.shade200;
-                      break;
-                    case 'absent':
-                      bgColor = const Color(0xFFFFEBEE);
-                      borderColor = Colors.red.shade200;
-                      break;
-                    case 'leave':
-                      bgColor = const Color(0xFFFFFDE7);
-                      borderColor = Colors.amber.shade200;
-                      break;
-                    default:
-                      bgColor = AppColors.surface;
-                      borderColor = AppColors.border;
-                  }
+                      final studentId = s['id'];
+                      final name = s['NAME'] ?? s['name'] ?? 'No Name';
+                      final roll = s['rollNo'] ?? s['ROLL NO.'] ?? 'N/A';
+                      final status = _attendance[studentId] ?? 'unmarked';
 
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: bgColor, 
-                      borderRadius: BorderRadius.circular(AppConstants.radiusMd),
-                      border: Border.all(color: borderColor, width: 1.5),
-                      boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))],
-                    ),
-                    child: Row(children: [
-                      CircleAvatar(radius: 18, backgroundColor: AppColors.accent.withValues(alpha: 0.12),
-                        child: Text(name.isNotEmpty ? name[0] : 'S', style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.accent))),
-                      const SizedBox(width: 12),
-                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                        Text('Roll: $roll', style: const TextStyle(fontSize: 11, color: AppColors.textSubtle)),
-                      ])),
-                      _statusBtn('P', 'present', status, studentId, AppColors.statusPresent),
-                      const SizedBox(width: 6),
-                      _statusBtn('A', 'absent', status, studentId, AppColors.statusAbsent),
-                      const SizedBox(width: 6),
-                      _statusBtn('L', 'leave', status, studentId, AppColors.statusLeave),
-                    ]),
-                  );
-                },
-              ),
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6, offset: const Offset(0, 2))],
+                        ),
+                        child: Row(
+                          children: [
+                            // Index #
+                            SizedBox(
+                              width: 24,
+                              child: Text('${i + 1}', style: TextStyle(color: Colors.grey.shade500, fontSize: 13, fontWeight: FontWeight.w500)),
+                            ),
+                            // Avatar
+                            CircleAvatar(
+                              radius: 18, 
+                              backgroundColor: AppColors.primary.withOpacity(0.08),
+                              child: Text(name.isNotEmpty ? name[0] : 'S', 
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 14)),
+                            ),
+                            const SizedBox(width: 12),
+                            // Name & Roll
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start, 
+                                children: [
+                                  Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary)),
+                                  const SizedBox(height: 2),
+                                  Text('Roll: $roll', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                                ]
+                              ),
+                            ),
+                            // Status Buttons
+                            _statusBtn('P', 'present', status, studentId, _UIColors.present),
+                            const SizedBox(width: 8),
+                            _statusBtn('A', 'absent', status, studentId, _UIColors.absent),
+                            const SizedBox(width: 8),
+                            _statusBtn('L', 'leave', status, studentId, _UIColors.leave),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
             ),
           ]),
           // Bottom area (Submit button or Submitted card)
@@ -421,53 +443,48 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
     return Positioned(
       bottom: 0, left: 0, right: 0,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 30),
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          border: Border(top: BorderSide(color: AppColors.border.withOpacity(0.5))),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -4))],
+          color: Colors.white,
+          borderRadius: const BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 15, offset: const Offset(0, -5))],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: AppColors.statusPresent.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.statusPresent.withValues(alpha: 0.2)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Row(
-                        children: [
-                          Text('Attendance Submitted ', style: TextStyle(color: AppColors.statusPresent, fontWeight: FontWeight.bold, fontSize: 13)),
-                          Icon(Icons.check_circle_rounded, color: AppColors.statusPresent, size: 16),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text('Submitted at $_submittedAt • $_submittedBy', 
-                        style: const TextStyle(color: AppColors.statusPresent, fontSize: 12)),
-                    ],
-                  ),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _UIColors.present.withOpacity(0.5)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.check_circle, color: _UIColors.present, size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Attendance Submitted', style: TextStyle(color: _UIColors.present, fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 4),
+                    Text('Submitted at $_submittedAt • Teacher', 
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                  ],
                 ),
-                OutlinedButton(
+              ),
+              SizedBox(
+                height: 40,
+                child: OutlinedButton(
                   onPressed: () => setState(() => _attendanceStatus = 'editing'),
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppColors.statusPresent),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    side: const BorderSide(color: _UIColors.present),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: const Text('Edit', style: TextStyle(color: AppColors.statusPresent, fontWeight: FontWeight.bold, fontSize: 12)),
+                  child: const Text('Edit', style: TextStyle(color: _UIColors.present, fontWeight: FontWeight.bold)),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          ],
         ),
       ),
     );
@@ -507,14 +524,15 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
               // Top row: Back button, Title, Calendar icon
               Row(
                 children: [
+                  const SizedBox(width: 8),
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: Colors.white),
+                    icon: const Icon(Icons.arrow_back, size: 24, color: Colors.white),
                     onPressed: () => Navigator.pop(context),
                   ),
                   const Expanded(
-                    child: Center(
-                      child: Text('Mark Attendance', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
-                    ),
+                    child: Text('Mark Attendance', 
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                   ),
                   IconButton(
                     icon: const Icon(Icons.history, color: Colors.white),
@@ -537,6 +555,7 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
                       }
                     },
                   ),
+                  const SizedBox(width: 8),
                 ],
               ),
               // Class & Division Header
@@ -552,8 +571,16 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
                       else if (_teacherClass == '2') suffix = 'nd';
                       else if (_teacherClass == '3') suffix = 'rd';
                       
-                      return Text('Class $_teacherClass$suffix $_teacherDiv', 
-                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold));
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Class $_teacherClass$suffix $_teacherDiv', 
+                            style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 4),
+                          Text('Today • ${DateFormat('d MMM yyyy').format(_selectedDate)}', 
+                            style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13)),
+                        ],
+                      );
                     }),
                     _buildStatusBadge(),
                   ],
@@ -623,8 +650,10 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
             setState(() => _selectedDate = prevDate);
             _fetchStudents();
           }, true),
-          Text(isToday ? 'Today' : DateFormat('d MMM').format(_selectedDate), 
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+          // Today/Date centered
+          _dateNavBtn(DateFormat('d MMM').format(_selectedDate), () async {
+             // Optional: show picker on center tap too?
+          }, true, isCenter: true),
           _dateNavBtn('${DateFormat('d MMM').format(nextDate)} ›', () {
             if (!isNextDisabled) {
               setState(() => _selectedDate = nextDate);
@@ -636,16 +665,17 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
     );
   }
 
-  Widget _dateNavBtn(String label, VoidCallback onTap, bool enabled) {
+  Widget _dateNavBtn(String label, VoidCallback onTap, bool enabled, {bool isCenter = false}) {
     return GestureDetector(
       onTap: enabled ? onTap : null,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: isCenter ? 24 : 16, vertical: 8),
         decoration: BoxDecoration(
+          color: isCenter ? Colors.transparent : Colors.white.withOpacity(0.1),
           border: Border.all(color: Colors.white.withOpacity(enabled ? 0.3 : 0.1)),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
         ),
-        child: Text(label, style: TextStyle(color: Colors.white.withOpacity(enabled ? 1 : 0.4), fontSize: 13)),
+        child: Text(label, style: TextStyle(color: Colors.white.withOpacity(enabled ? 1 : 0.4), fontSize: 13, fontWeight: isCenter ? FontWeight.bold : FontWeight.normal)),
       ),
     );
   }
@@ -660,33 +690,34 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
     final total = _students.length;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          _summaryCard(present.toString(), 'PRESENT', AppColors.statusPresent),
+          _summaryCard(present.toString(), 'Present', _UIColors.present, _UIColors.presentBG),
           const SizedBox(width: 10),
-          _summaryCard(absent.toString(), 'ABSENT', AppColors.statusAbsent),
+          _summaryCard(absent.toString(), 'Absent', _UIColors.absent, _UIColors.absentBG),
           const SizedBox(width: 10),
-          _summaryCard(leave.toString(), 'LEAVE', AppColors.statusLeave),
+          _summaryCard(leave.toString(), 'Leave', _UIColors.leave, _UIColors.leaveBG),
           const SizedBox(width: 10),
-          _summaryCard(total.toString(), 'TOTAL', AppColors.primary),
+          _summaryCard(total.toString(), 'Total', _UIColors.total, _UIColors.totalBG),
         ],
       ),
     );
   }
 
-  Widget _summaryCard(String value, String label, Color color) {
+  Widget _summaryCard(String value, String label, Color color, Color bgColor) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(8),
+          color: bgColor,
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           children: [
-            Text(value, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.bold)),
-            Text(label, style: TextStyle(color: color.withOpacity(0.6), fontSize: 8, fontWeight: FontWeight.bold)),
+            Text(value, style: TextStyle(color: color, fontSize: 22, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w500)),
           ],
         ),
       ),
@@ -704,12 +735,20 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
     
     final percent = ((present / total) * 100).toInt();
     
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2))],
+      ),
       child: Row(
         children: [
-          Text('Class attendance today: ', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-          Text('$percent%', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13)),
+          const Icon(Icons.check_circle, color: _UIColors.present, size: 18),
+          const SizedBox(width: 8),
+          Text('Class attendance today: ', style: TextStyle(color: AppColors.textPrimary.withOpacity(0.8), fontSize: 13, fontWeight: FontWeight.w500)),
+          Text('$percent%', style: const TextStyle(color: _UIColors.present, fontWeight: FontWeight.bold, fontSize: 14)),
         ],
       ),
     );
@@ -748,13 +787,13 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
         );
       },
       child: Container(
-        width: 32, height: 32,
+        width: 36, height: 36,
         decoration: BoxDecoration(
           color: selected ? color : Colors.transparent,
           shape: BoxShape.circle,
-          border: Border.all(color: color.withOpacity(isDisabled ? 0.3 : 1), width: 2),
+          border: Border.all(color: color.withOpacity(isDisabled ? 0.3 : 0.4), width: 1.5),
         ),
-        child: Center(child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: selected ? Colors.white : color.withOpacity(isDisabled ? 0.3 : 1)))),
+        child: Center(child: Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: selected ? Colors.white : color.withOpacity(isDisabled ? 0.3 : 1)))),
       ),
     );
   }
