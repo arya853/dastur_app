@@ -324,10 +324,18 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
               child: Row(
                 children: [
-                  const SizedBox(width: 24, child: Text('#', style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold))),
-                  const Expanded(child: Text('Student', style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold))),
-                  Text('Status', style: TextStyle(color: Colors.grey.shade400, fontSize: 11, fontWeight: FontWeight.bold)),
-                  const SizedBox(width: 100), // Space over buttons
+                  const SizedBox(width: 48), // Offset to match Avatar (36) + Spacing (12)
+                  const Expanded(
+                    child: Text('Student', 
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+                  ),
+                  SizedBox(
+                    width: 124, // Exact width of 3 buttons (36*3) + 2 spacings (8*2)
+                    child: Text('Status', 
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey.shade400, fontSize: 11, fontWeight: FontWeight.bold)),
+                  ),
                 ],
               ),
             ),
@@ -347,7 +355,7 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
@@ -355,11 +363,6 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
                         ),
                         child: Row(
                           children: [
-                            // Index #
-                            SizedBox(
-                              width: 24,
-                              child: Text('${i + 1}', style: TextStyle(color: Colors.grey.shade500, fontSize: 13, fontWeight: FontWeight.w500)),
-                            ),
                             // Avatar
                             CircleAvatar(
                               radius: 18, 
