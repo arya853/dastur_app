@@ -202,7 +202,7 @@ class _AddExamSyllabusScreenState extends State<AddExamSyllabusScreen> {
                       onPressed: _save,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppConstants.radiusL),),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppConstants.radiusLg),),
                       ),
                       child: const Text("SAVE EXAM SYLLABUS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                     ),
