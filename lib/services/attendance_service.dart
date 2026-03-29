@@ -75,6 +75,27 @@ class AttendanceService {
         .snapshots();
   }
 
+  /// Streams attendance records for the last 30 days.
+  Stream<QuerySnapshot> streamLast30DaysAttendance({
+    required String grade,
+    required String div,
+    required String grNo,
+  }) {
+    final now = DateTime.now();
+    // Use midnight of 30 days ago to catch the full range
+    final thirtyDaysAgo = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 30));
+
+    return _db
+        .collection('students')
+        .doc(grade)
+        .collection('DIV_$div')
+        .doc(grNo)
+        .collection('attendance')
+        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(thirtyDaysAgo))
+        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(now))
+        .snapshots();
+  }
+
   /// Fetches the attendance summary for a class on a specific date.
   Future<Map<String, dynamic>?> fetchAttendanceSummary(String grade, String div, String dateId) async {
     try {

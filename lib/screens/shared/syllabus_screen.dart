@@ -140,9 +140,7 @@ class _SyllabusScreenState extends State<SyllabusScreen> {
                       chapter.name,
                       style: TextStyle(
                         fontSize: 13,
-                        decoration: chapter.completed
-                            ? TextDecoration.lineThrough
-                            : null,
+                        decoration: null, // Removed strike-through
                         color: chapter.completed
                             ? AppColors.textSubtle
                             : AppColors.textPrimary,

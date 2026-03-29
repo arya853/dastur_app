@@ -95,6 +95,9 @@ class AppColors {
   /// Attendance: Leave
   static const Color statusLeave = Color(0xFFF59E0B);
 
+  /// Attendance: Holiday
+  static const Color statusHoliday = Color(0xFF374151);
+
   /// Success actions / confirmations
   static const Color success = Color(0xFF10B981);
 
