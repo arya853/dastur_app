@@ -49,6 +49,9 @@ import 'screens/shared/profile_screen.dart';
 import 'screens/shared/parent_id_card_screen.dart';
 import 'screens/shared/notifications/notification_screen.dart';
 import 'screens/shared/announcement_detail_screen.dart';
+import 'screens/teacher/exam_syllabus/manage_exam_syllabus_screen.dart';
+import 'screens/teacher/exam_syllabus/add_exam_syllabus_screen.dart';
+import 'screens/shared/exam_syllabus_view_screen.dart';
 import 'models/announcement.dart';
 
 /// Dastur School Parent Portal
@@ -181,6 +184,8 @@ class DasturParentPortalApp extends StatelessWidget {
           '/parent-id-card': (_) => const ParentIdCardScreen(),
           '/notifications': (_) => const NotificationScreen(),
           '/teacher-send-notification': (_) => const TeacherNotificationScreen(),
+          '/teacher-exam-syllabus': (_) => const ManageExamSyllabusScreen(),
+          '/parent-exam-syllabus': (_) => const ExamSyllabusViewScreen(),
 
           // Teacher-specific screens
           '/teacher-mark-attendance': (_) => const MarkAttendanceScreen(),

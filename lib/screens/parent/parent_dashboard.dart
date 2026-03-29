@@ -277,6 +277,12 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                   onTap: () => Navigator.pushNamed(context, '/profile'),
                 ),
                 DashboardTile(
+                  icon: Icons.checklist_rtl_rounded,
+                  label: 'Exam\nSyllabus',
+                  iconColor: AppColors.tileIconColors[6],
+                  onTap: () => Navigator.pushNamed(context, '/parent-exam-syllabus'),
+                ),
+                DashboardTile(
                   icon: Icons.book_rounded,
                   label: 'Home Work',
                   iconColor: AppColors.tileIconColors[5],

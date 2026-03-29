@@ -109,6 +109,8 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                   onTap: () => Navigator.pushNamed(context, '/practice-papers')),
                 DashboardTile(icon: Icons.schedule, label: 'My\nTimetable', iconColor: AppColors.tileIconColors[9],
                   onTap: () => Navigator.pushNamed(context, '/timetable')),
+                DashboardTile(icon: Icons.checklist_rtl_rounded, label: 'Exam\nSyllabus', iconColor: AppColors.tileIconColors[7],
+                  onTap: () => Navigator.pushNamed(context, '/teacher-exam-syllabus')),
                 DashboardTile(icon: Icons.groups, label: 'Class\nStudents', iconColor: AppColors.tileIconColors[11],
                   onTap: () => Navigator.pushNamed(context, '/teacher-students')),
                 DashboardTile(icon: Icons.person, label: 'My\nProfile', iconColor: AppColors.tileIconColors[0],
