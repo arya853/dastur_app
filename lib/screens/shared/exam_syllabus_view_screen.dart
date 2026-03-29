@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/app_colors.dart';
 import '../../core/app_constants.dart';
@@ -133,8 +133,20 @@ class _ExamSyllabusViewScreenState extends State<ExamSyllabusViewScreen> {
       itemCount: subjectNames.length,
       itemBuilder: (context, index) {
         final subject = subjectNames[index];
-        final portion = subjects[subject].toString();
+        final subjectData = subjects[subject];
+        
+        final String portion = (subjectData is Map ? subjectData['portion'] : subjectData).toString();
+        final String dateStr = (subjectData is Map ? (subjectData['date'] ?? '') : '').toString();
+        final String timeStr = (subjectData is Map ? (subjectData['time'] ?? '') : '').toString();
+        
         final examName = data['examName'] ?? 'Exam';
+
+        DateTime? parsedDate;
+        try {
+          if (dateStr.isNotEmpty) {
+            parsedDate = DateTime.parse(dateStr);
+          }
+        } catch (_) {}
 
         return GestureDetector(
           onTap: () {
@@ -145,6 +157,8 @@ class _ExamSyllabusViewScreenState extends State<ExamSyllabusViewScreen> {
                   subjectName: subject,
                   examName: examName,
                   portionText: portion,
+                  examDate: dateStr,
+                  examTime: timeStr,
                 ),
               ),
             );
@@ -164,10 +178,10 @@ class _ExamSyllabusViewScreenState extends State<ExamSyllabusViewScreen> {
             ),
             child: Row(
               children: [
-                // Premium Left Banner (Blue Gradient)
+                // Premium Left Banner (Blue Gradient) - showing Date if available
                 Container(
                   width: 80,
-                  height: 120,
+                  height: 125,
                   decoration: const BoxDecoration(
                     gradient: AppColors.primaryGradient,
                     borderRadius: BorderRadius.only(
@@ -176,29 +190,43 @@ class _ExamSyllabusViewScreenState extends State<ExamSyllabusViewScreen> {
                     ),
                   ),
                   child: Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                      ),
-                      child: Text(
-                        subject.isNotEmpty ? subject[0].toUpperCase() : 'B',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
+                    child: parsedDate != null 
+                    ? Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            parsedDate.day.toString(),
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 26),
+                          ),
+                          Text(
+                            DateFormat('MMM').format(parsedDate).toUpperCase(),
+                            style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontWeight: FontWeight.w700, fontSize: 13),
+                          ),
+                        ],
+                      )
+                    : Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                        ),
+                        child: Text(
+                          subject.isNotEmpty ? subject[0].toUpperCase() : 'B',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
-                    ),
                   ),
                 ),
                 
                 // Content
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -233,21 +261,37 @@ class _ExamSyllabusViewScreenState extends State<ExamSyllabusViewScreen> {
                         
                         const SizedBox(height: 12),
                         
-                        // Action indicator
-                        const Row(
-                          children: [
-                            Icon(Icons.description_outlined, size: 14, color: AppColors.textSubtle),
-                            SizedBox(width: 4),
-                            Text(
-                              'View Detailed Portion',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textSubtle,
-                                fontWeight: FontWeight.w600,
+                        // Time indicator - matching the reference image
+                        if (timeStr.isNotEmpty)
+                          Row(
+                            children: [
+                              const Icon(Icons.schedule_rounded, size: 15, color: AppColors.textSubtle),
+                              const SizedBox(width: 6),
+                              Text(
+                                timeStr,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          )
+                        else
+                          const Row(
+                            children: [
+                              Icon(Icons.description_outlined, size: 14, color: AppColors.textSubtle),
+                              SizedBox(width: 4),
+                              Text(
+                                'View Detailed Portion',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSubtle,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
                       ],
                     ),
                   ),

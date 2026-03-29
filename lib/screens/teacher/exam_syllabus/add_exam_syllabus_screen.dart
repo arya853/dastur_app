@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../../core/app_colors.dart';
 import '../../../core/app_constants.dart';
 import '../../../widgets/shared_widgets.dart';
@@ -18,8 +19,12 @@ class AddExamSyllabusScreen extends StatefulWidget {
 class _AddExamSyllabusScreenState extends State<AddExamSyllabusScreen> {
   final ExamSyllabusService _service = ExamSyllabusService();
   final TextEditingController _examNameController = TextEditingController();
+  
   final List<TextEditingController> _subjectControllers = [];
   final List<TextEditingController> _portionControllers = [];
+  final List<TextEditingController> _dateControllers = [];
+  final List<TextEditingController> _timeControllers = [];
+  
   bool _isLoading = false;
 
   @override
@@ -30,10 +35,18 @@ class _AddExamSyllabusScreenState extends State<AddExamSyllabusScreen> {
       final subjectsMap = widget.initialData!['subjects'] as Map<String, dynamic>? ?? {};
       subjectsMap.forEach((key, value) {
         _subjectControllers.add(TextEditingController(text: key));
-        _portionControllers.add(TextEditingController(text: value.toString()));
+        if (value is Map) {
+          _portionControllers.add(TextEditingController(text: value['portion']?.toString() ?? ''));
+          _dateControllers.add(TextEditingController(text: value['date']?.toString() ?? ''));
+          _timeControllers.add(TextEditingController(text: value['time']?.toString() ?? ''));
+        } else {
+          // Legacy support for simple string portions
+          _portionControllers.add(TextEditingController(text: value.toString()));
+          _dateControllers.add(TextEditingController());
+          _timeControllers.add(TextEditingController());
+        }
       });
     } else {
-      // Start with one empty slot
       _addSlot();
     }
   }
@@ -42,6 +55,8 @@ class _AddExamSyllabusScreenState extends State<AddExamSyllabusScreen> {
     setState(() {
       _subjectControllers.add(TextEditingController());
       _portionControllers.add(TextEditingController());
+      _dateControllers.add(TextEditingController());
+      _timeControllers.add(TextEditingController());
     });
   }
 
@@ -49,21 +64,73 @@ class _AddExamSyllabusScreenState extends State<AddExamSyllabusScreen> {
     setState(() {
       _subjectControllers[index].dispose();
       _portionControllers[index].dispose();
+      _dateControllers[index].dispose();
+      _timeControllers[index].dispose();
       _subjectControllers.removeAt(index);
       _portionControllers.removeAt(index);
+      _dateControllers.removeAt(index);
+      _timeControllers.removeAt(index);
     });
   }
 
   @override
   void dispose() {
     _examNameController.dispose();
-    for (var c in _subjectControllers) {
-      c.dispose();
-    }
-    for (var c in _portionControllers) {
-      c.dispose();
-    }
+    for (var c in _subjectControllers) { c.dispose(); }
+    for (var c in _portionControllers) { c.dispose(); }
+    for (var c in _dateControllers) { c.dispose(); }
+    for (var c in _timeControllers) { c.dispose(); }
     super.dispose();
+  }
+
+  Future<void> _selectDate(int index) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2025),
+      lastDate: DateTime(2026),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              onSurface: AppColors.primary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        _dateControllers[index].text = DateFormat('yyyy-MM-dd').format(picked);
+      });
+    }
+  }
+
+  Future<void> _selectTimeRange(int index) async {
+    final TimeOfDay? startTime = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 10, minute: 0),
+      helpText: 'SELECT START TIME',
+    );
+    if (startTime == null) return;
+
+    if (!mounted) return;
+    
+    final TimeOfDay? endTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: startTime.hour + 1, minute: startTime.minute),
+      helpText: 'SELECT END TIME',
+    );
+    if (endTime == null) return;
+
+    setState(() {
+      final start = startTime.format(context);
+      final end = endTime.format(context);
+      _timeControllers[index].text = '$start - $end';
+    });
   }
 
   Future<void> _save() async {
@@ -73,12 +140,19 @@ class _AddExamSyllabusScreenState extends State<AddExamSyllabusScreen> {
       return;
     }
 
-    final Map<String, String> subjectsData = {};
+    final Map<String, dynamic> subjectsData = {};
     for (int i = 0; i < _subjectControllers.length; i++) {
       final s = _subjectControllers[i].text.trim();
       final p = _portionControllers[i].text.trim();
+      final d = _dateControllers[i].text.trim();
+      final t = _timeControllers[i].text.trim();
+      
       if (s.isNotEmpty && p.isNotEmpty) {
-        subjectsData[s] = p;
+        subjectsData[s] = {
+          'portion': p,
+          'date': d,
+          'time': t,
+        };
       }
     }
 
@@ -133,10 +207,10 @@ class _AddExamSyllabusScreenState extends State<AddExamSyllabusScreen> {
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       contentPadding: const EdgeInsets.all(16),
                     ),
-                    enabled: widget.initialData == null, // Name shouldn't change for unique ID consistency
+                    enabled: widget.initialData == null,
                   ),
                   const SizedBox(height: 24),
-                  const Text("Subjects & Portions", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const Text("Subjects, Dates & Timings", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 12),
                   ListView.builder(
                     shrinkWrap: true,
@@ -173,9 +247,42 @@ class _AddExamSyllabusScreenState extends State<AddExamSyllabusScreen> {
                               ],
                             ),
                             const SizedBox(height: 12),
+                            // Date and Time Fields
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _dateControllers[index],
+                                    readOnly: true,
+                                    onTap: () => _selectDate(index),
+                                    decoration: InputDecoration(
+                                      labelText: "Exam Date",
+                                      hintText: "YYYY-MM-DD",
+                                      prefixIcon: const Icon(Icons.calendar_month, color: AppColors.primary),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _timeControllers[index],
+                                    readOnly: true,
+                                    onTap: () => _selectTimeRange(index),
+                                    decoration: InputDecoration(
+                                      labelText: "Exam Time",
+                                      hintText: "Select Time",
+                                      prefixIcon: const Icon(Icons.access_time_filled, color: AppColors.primary),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
                             TextFormField(
                               controller: _portionControllers[index],
-                              maxLines: 3,
+                              maxLines: 4,
                               decoration: InputDecoration(
                                 hintText: "Enter the portion / syllabus for this exam...",
                                 labelText: "Portion Details",

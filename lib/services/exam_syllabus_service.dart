@@ -18,7 +18,7 @@ class ExamSyllabusService {
     required String grade,
     required String div,
     required String examName,
-    required Map<String, String> subjects,
+    required Map<String, dynamic> subjects,
   }) async {
     final docId = '${grade}_${div}_${examName.replaceAll(' ', '_')}';
     

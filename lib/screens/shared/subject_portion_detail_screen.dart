@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../core/app_colors.dart';
 import '../../core/app_constants.dart';
 import '../../widgets/shared_widgets.dart';
@@ -7,16 +8,30 @@ class SubjectPortionDetailScreen extends StatelessWidget {
   final String subjectName;
   final String examName;
   final String portionText;
+  final String? examDate;
+  final String? examTime;
 
   const SubjectPortionDetailScreen({
     super.key, 
     required this.subjectName, 
     required this.examName, 
-    required this.portionText
+    required this.portionText,
+    this.examDate,
+    this.examTime,
   });
 
   @override
   Widget build(BuildContext context) {
+    String formattedDate = '';
+    if (examDate != null && examDate!.isNotEmpty) {
+      try {
+        final date = DateTime.parse(examDate!);
+        formattedDate = DateFormat('EEEE, d MMMM yyyy').format(date);
+      } catch (_) {
+        formattedDate = examDate!;
+      }
+    }
+
     return Scaffold(
       appBar: GradientAppBar(title: subjectName, showBackButton: true),
       backgroundColor: AppColors.background,
@@ -90,6 +105,53 @@ class SubjectPortionDetailScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
+                
+                const SizedBox(height: 24),
+
+                // Date and Time Row
+                if (formattedDate.isNotEmpty || (examTime != null && examTime!.isNotEmpty))
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        if (formattedDate.isNotEmpty)
+                          Row(
+                            children: [
+                              const Icon(Icons.calendar_today_rounded, size: 18, color: AppColors.primary),
+                              const SizedBox(width: 12),
+                              Text(
+                                formattedDate,
+                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textPrimary),
+                              ),
+                            ],
+                          ),
+                        if (formattedDate.isNotEmpty && examTime != null && examTime!.isNotEmpty)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8.0),
+                            child: Divider(height: 1),
+                          ),
+                        if (examTime != null && examTime!.isNotEmpty)
+                          Row(
+                            children: [
+                              const Icon(Icons.schedule_rounded, size: 18, color: AppColors.primary),
+                              const SizedBox(width: 12),
+                              Text(
+                                examTime!,
+                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textPrimary),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
                 
                 const SizedBox(height: 32),
                 
