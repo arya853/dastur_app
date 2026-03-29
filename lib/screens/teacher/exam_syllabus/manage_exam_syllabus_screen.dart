@@ -6,6 +6,7 @@ import '../../../core/app_constants.dart';
 import '../../../widgets/shared_widgets.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/exam_syllabus_service.dart';
+import '../../../core/utils/string_utils.dart';
 import 'add_exam_syllabus_screen.dart';
 
 class ManageExamSyllabusScreen extends StatefulWidget {
@@ -27,8 +28,8 @@ class _ManageExamSyllabusScreenState extends State<ManageExamSyllabusScreen> {
       return const Scaffold(body: Center(child: Text("Teacher profile not found.")));
     }
 
-    final String grade = (teacherProfile['grade'] ?? teacherProfile['gradeName'] ?? 'grade5').toString();
-    final String div = (teacherProfile['DIV'] ?? 'A').toString();
+    final String grade = StringUtils.normalizeGrade((teacherProfile['grade'] ?? teacherProfile['gradeName'] ?? 'grade5').toString());
+    final String div = StringUtils.normalizeDivision((teacherProfile['DIV'] ?? 'A').toString());
 
     return Scaffold(
       appBar: const GradientAppBar(title: 'Exam Syllabus', showBackButton: true),

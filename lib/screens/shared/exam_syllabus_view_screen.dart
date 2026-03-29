@@ -6,6 +6,7 @@ import '../../core/app_constants.dart';
 import '../../widgets/shared_widgets.dart';
 import '../../services/auth_service.dart';
 import '../../services/exam_syllabus_service.dart';
+import '../../core/utils/string_utils.dart';
 
 class ExamSyllabusViewScreen extends StatefulWidget {
   const ExamSyllabusViewScreen({super.key});
@@ -29,8 +30,8 @@ class _ExamSyllabusViewScreenState extends State<ExamSyllabusViewScreen> {
       return const Scaffold(body: Center(child: Text("Profile data not found.")));
     }
 
-    final String grade = (userProfile['grade'] ?? userProfile['gradeName'] ?? userProfile['CLASS'] ?? 'grade5').toString();
-    final String div = (userProfile['DIV'] ?? userProfile['division'] ?? 'A').toString();
+    final String grade = StringUtils.normalizeGrade((userProfile['grade'] ?? userProfile['gradeName'] ?? userProfile['CLASS'] ?? 'grade5').toString());
+    final String div = StringUtils.normalizeDivision((userProfile['DIV'] ?? userProfile['division'] ?? 'A').toString());
 
     return Scaffold(
       appBar: const GradientAppBar(title: 'Exam Porions / Syllabus', showBackButton: true),
