@@ -56,7 +56,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text("Could not load attendance. Check your connection."));
+            return const Center(child: Text("Could not load attendance."));
           }
 
           final docs = snapshot.data?.docs ?? [];
@@ -80,7 +80,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
               children: [
                 const SectionHeader(title: 'Monthly Calendar'),
                 
-                // Existing stats summary
+                // Stats summary (Monthly)
                 Container(
                   margin: const EdgeInsets.all(16),
                   padding: const EdgeInsets.all(20),
@@ -101,7 +101,8 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                     ],
                   ),
                 ),
-                // Month nav
+
+                // Month navigation
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
@@ -119,6 +120,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                     ],
                   ),
                 ),
+
                 // Day headers
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -129,18 +131,22 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
+
                 // Calendar grid
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: _buildGrid(attendanceMap),
                 ),
+
                 if (docs.isEmpty) 
                   const Padding(
-                    padding: EdgeInsets.all(20),
-                    child: Text("No attendance data for this month", style: TextStyle(color: Colors.grey)),
+                    padding: EdgeInsets.all(24),
+                    child: Center(child: Text("No data for this month", style: TextStyle(color: Colors.grey, fontSize: 13))),
                   ),
+
                 const SizedBox(height: 16),
-                // Legend
+
+                // Calendar Legend
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 32),
                   child: Row(
@@ -152,9 +158,12 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                     ],
                   ),
                 ),
+
                 const SizedBox(height: 24),
-                // Attendance Overview (Last 30 Days)
+                
+                // Attendance Overview Section (Last 30 Days)
                 _buildAttendanceOverview(grade, div, grNo),
+                
                 const SizedBox(height: 32),
               ],
             ),
@@ -169,7 +178,6 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
     final lastDay = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0);
     final cells = <Widget>[];
 
-    // Padding for first week
     for (int i = 1; i < firstDay.weekday; i++) {
       cells.add(const SizedBox());
     }
@@ -190,7 +198,7 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
 
       if (bgColor != null) {
         borderColor = bgColor.withOpacity(0.5);
-        bgColor = bgColor.withOpacity(0.2);
+        bgColor = bgColor.withOpacity(0.15);
       }
 
       cells.add(Container(
@@ -225,11 +233,12 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
   }
 
   Widget _statItem(String label, String value, Color color) {
-    return Column(children: [
-      Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 22)),
-      const SizedBox(height: 2),
-      Text(label, style: const TextStyle(color: AppColors.textOnDarkMuted, fontSize: 11)),
-    ]);
+    return Column(
+      children: [
+        Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.8))),
+      ],
+    );
   }
 
   Widget _legend(Color color, String label) {
@@ -253,13 +262,11 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
 
         final docs = snapshot.data!.docs;
         final now = DateTime.now();
-        // Today is included, so go back 29 days to get 30 days total
         final startOfToday = DateTime(now.year, now.month, now.day);
         final thirtyDaysAgo = startOfToday.subtract(const Duration(days: 29));
 
         int presentCount = 0, absentCount = 0, leaveCount = 0, holidayCount = 0;
 
-        // Get holidays from MockDataService
         final holidays = MockDataService.calendarEvents
             .where((e) => e.type == 'holiday' && 
                 (e.date.isAtSameMomentAs(thirtyDaysAgo) || e.date.isAfter(thirtyDaysAgo)) && 
@@ -267,7 +274,6 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
             .map((e) => DateTime(e.date.year, e.date.month, e.date.day))
             .toSet();
 
-        // Map marked attendance
         final attendanceMap = <DateTime, String>{};
         for (var doc in docs) {
           final data = doc.data() as Map<String, dynamic>;
@@ -276,17 +282,13 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
           attendanceMap[DateTime(date.year, date.month, date.day)] = status;
         }
 
-        // Iterate through last 30 days
         for (int i = 0; i < 30; i++) {
           final date = thirtyDaysAgo.add(Duration(days: i));
-          
           if (date.isAfter(now)) break;
-          // Don't count Sunday
           if (date.weekday == DateTime.sunday) continue;
 
-          if (holidays.contains(DateTime(date.year, date.month, date.day))) {
-            holidayCount++;
-          } else if (attendanceMap.containsKey(DateTime(date.year, date.month, date.day))) {
+          if (holidays.contains(DateTime(date.year, date.month, date.day))) holidayCount++;
+          else if (attendanceMap.containsKey(DateTime(date.year, date.month, date.day))) {
             final status = attendanceMap[DateTime(date.year, date.month, date.day)];
             if (status == 'present') presentCount++;
             else if (status == 'absent') absentCount++;
@@ -350,45 +352,55 @@ class _AttendancePieComponent extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 50),
+          // PREMIUM 2.5D PIE CHART
           SizedBox(
-            height: 220,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                PieChart(
-                  PieChartData(
-                    sectionsSpace: 3,
-                    centerSpaceRadius: 65,
-                    startDegreeOffset: 270,
-                    sections: [
-                      _section('Present', present, AppColors.statusPresent, [AppColors.statusPresent, AppColors.statusPresent.withOpacity(0.7)]),
-                      _section('Holiday', holiday, AppColors.statusHoliday, [AppColors.statusHoliday, const Color(0xFF4B5563)]),
-                      _section('Absent', absent, AppColors.statusAbsent, [AppColors.statusAbsent, AppColors.statusAbsent.withOpacity(0.7)]),
-                      _section('Leave', leave, AppColors.statusLeave, [AppColors.statusLeave, AppColors.statusLeave.withOpacity(0.7)]),
-                    ],
-                  ),
-                ),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
+            height: 200,
+            width: double.infinity,
+            child: Center(
+              child: Transform(
+                transform: Matrix4.identity()
+                  ..setEntry(3, 2, 0.001)
+                  ..rotateX(-0.25),
+                alignment: Alignment.center,
+                child: Stack(
+                  alignment: Alignment.center,
                   children: [
-                    Text('30', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppColors.textPrimary, height: 1)),
-                    Text('DAYS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2, color: AppColors.textSecondary)),
+                    // Extrusion Layer (Depth)
+                    Transform.translate(
+                      offset: const Offset(0, 8),
+                      child: PieChart(
+                        PieChartData(
+                          sectionsSpace: 3,
+                          centerSpaceRadius: 0,
+                          startDegreeOffset: 270,
+                          sections: _buildSections(isBottom: true),
+                        ),
+                      ),
+                    ),
+                    // Surface Layer (Top)
+                    PieChart(
+                      PieChartData(
+                        sectionsSpace: 3,
+                        centerSpaceRadius: 0,
+                        startDegreeOffset: 270,
+                        sections: _buildSections(isBottom: false),
+                      ),
+                    ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
-          const SizedBox(height: 40),
-          // Legend row (like the one in screenshot, enhanced)
-          Row(
+          const SizedBox(height: 48),
+          // Refined Legend
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
               _legendCard('Present', present, AppColors.statusPresent),
-              const SizedBox(width: 8),
               _legendCard('Absent', absent, AppColors.statusAbsent),
-              const SizedBox(width: 8),
               _legendCard('Leave', leave, AppColors.statusLeave),
-              const SizedBox(width: 8),
               _legendCard('Holiday', holiday, AppColors.statusHoliday),
             ],
           ),
@@ -397,69 +409,96 @@ class _AttendancePieComponent extends StatelessWidget {
     );
   }
 
-  PieChartSectionData _section(String title, int value, Color color, List<Color> gradientColors) {
+  List<PieChartSectionData> _buildSections({required bool isBottom}) {
+    return [
+      _section('Present', present, AppColors.statusPresent, isBottom),
+      _section('Holiday', holiday, AppColors.statusHoliday, isBottom),
+      _section('Absent', absent, AppColors.statusAbsent, isBottom),
+      _section('Leave', leave, AppColors.statusLeave, isBottom),
+    ];
+  }
+
+  PieChartSectionData _section(String title, int value, Color color, bool isBottom) {
+    // Subtle, lighter depth layer
+    final depthColor = Color.alphaBlend(Colors.black.withOpacity(0.12), color);
+    
+    // High-end glossy gradient (lighter reflections)
+    final surfaceGradient = LinearGradient(
+      colors: [
+        Color.lerp(color, Colors.white, 0.45)!, // Lighter highlights
+        Color.lerp(color, Colors.white, 0.1)!,  // Base tone
+      ],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+
     return PieChartSectionData(
-      gradient: LinearGradient(
-        colors: gradientColors,
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-      ),
+      color: isBottom ? depthColor : null,
+      gradient: !isBottom ? surfaceGradient : null,
       value: value.toDouble(),
-      title: '', // No title on slice, using badges or legend
-      radius: 20,
-      badgeWidget: value > 0 ? _Badge(title, value, color) : null,
-      badgePositionPercentageOffset: 1.4,
+      title: '', 
+      radius: 80,
+      badgeWidget: !isBottom && value > 0 ? _CalloutLabel(title, color) : null,
+      badgePositionPercentageOffset: 1.35,
     );
   }
 
   Widget _legendCard(String label, int count, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(color: color.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4)),
-          ],
-        ),
-        child: Column(
-          children: [
-            Text(label, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 6),
-            Text('$count', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
-          ],
-        ),
+    return Container(
+      width: 80,
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(color: color.withOpacity(0.2), blurRadius: 6, offset: const Offset(0, 3)),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 4),
+          Text('$count', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+        ],
       ),
     );
   }
 }
 
-class _Badge extends StatelessWidget {
+class _CalloutLabel extends StatelessWidget {
   final String title;
-  final int count;
   final Color color;
 
-  const _Badge(this.title, this.count, this.color);
+  const _CalloutLabel(this.title, this.color);
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: color.withOpacity(0.2)),
-          ),
-          child: Text(
+    return Transform(
+      transform: Matrix4.identity()..rotateX(0.25),
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
             title,
-            style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: color),
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+              color: color.withOpacity(0.85),
+              letterSpacing: 0.5,
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 1),
+          Container(
+            width: 14,
+            height: 2,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.35),
+              borderRadius: BorderRadius.circular(1),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
