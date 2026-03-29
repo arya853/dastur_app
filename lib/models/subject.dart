@@ -1,4 +1,4 @@
-/// Subject with syllabus / chapter tracking.
+  /// Subject with syllabus / chapter tracking.
 class Subject {
   final String id;
   final String name;
@@ -11,6 +11,19 @@ class Subject {
     required this.classId,
     required this.chapters,
   });
+
+  Subject copyWith({
+    String? name,
+    String? classId,
+    List<Chapter>? chapters,
+  }) {
+    return Subject(
+      id: id,
+      name: name ?? this.name,
+      classId: classId ?? this.classId,
+      chapters: chapters ?? this.chapters,
+    );
+  }
 
   factory Subject.fromMap(Map<String, dynamic> map, String id) {
     return Subject(
@@ -47,6 +60,16 @@ class Chapter {
 
   Chapter({required this.name, required this.completed});
 
+  Chapter copyWith({
+    String? name,
+    bool? completed,
+  }) {
+    return Chapter(
+      name: name ?? this.name,
+      completed: completed ?? this.completed,
+    );
+  }
+
   factory Chapter.fromMap(Map<String, dynamic> map) {
     return Chapter(
       name: map['name'] ?? '',
@@ -61,3 +84,4 @@ class Chapter {
     };
   }
 }
+

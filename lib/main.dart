@@ -67,7 +67,10 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void handleNotificationClick(RemoteMessage? message) {
   if (message == null) return;
-  debugPrint("Notification Clicked: ${message.data}");
+  final data = message.data;
+  final String type = (data['type'] ?? 'general').toString().toLowerCase();
+
+  debugPrint("Notification Clicked: $data | Type: $type");
   
   // Use a recursive check or slight delay if navigator is not ready
   if (navigatorKey.currentState == null) {
@@ -75,7 +78,13 @@ void handleNotificationClick(RemoteMessage? message) {
     return;
   }
   
-  navigatorKey.currentState!.pushNamed('/notifications');
+  // Strict Routing: Attendance notifications (Present, Absent, Leave) go to Attendance Section
+  if (type == 'attendance') {
+    navigatorKey.currentState!.pushNamed('/attendance');
+  } else {
+    // Default fallback for announcements and general notifications
+    navigatorKey.currentState!.pushNamed('/notifications');
+  }
 }
 
 void main() async {

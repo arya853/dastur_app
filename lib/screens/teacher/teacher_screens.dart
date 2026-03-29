@@ -278,11 +278,9 @@ class _MarkAttendanceScreenState extends State<MarkAttendanceScreen> {
         teacherEmail: teacherEmail,
       );
 
-      await notificationService.sendNotificationToClass(
+      await notificationService.sendAttendanceNotifications(
         teacherEmail: teacherEmail,
-        title: 'Attendance Updated',
-        message: 'Attendance for Class $_teacherClass-$_teacherDiv has been marked for today.',
-        type: 'attendance',
+        attendance: _attendance,
       );
 
       if (mounted) {
