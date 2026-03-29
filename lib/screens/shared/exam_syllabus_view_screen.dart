@@ -7,6 +7,7 @@ import '../../widgets/shared_widgets.dart';
 import '../../services/auth_service.dart';
 import '../../services/exam_syllabus_service.dart';
 import '../../core/utils/string_utils.dart';
+import 'subject_portion_detail_screen.dart';
 
 class ExamSyllabusViewScreen extends StatefulWidget {
   const ExamSyllabusViewScreen({super.key});
@@ -128,62 +129,141 @@ class _ExamSyllabusViewScreenState extends State<ExamSyllabusViewScreen> {
     final subjectNames = subjects.keys.toList();
     
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       itemCount: subjectNames.length,
       itemBuilder: (context, index) {
         final subject = subjectNames[index];
         final portion = subjects[subject].toString();
+        final examName = data['examName'] ?? 'Exam';
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppConstants.radiusLg),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: ExpansionTile(
-            tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            leading: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: AppColors.tileIconColors[index % AppColors.tileIconColors.length].withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                Icons.book_outlined,
-                color: AppColors.tileIconColors[index % AppColors.tileIconColors.length],
-                size: 20,
-              ),
-            ),
-            title: Text(subject, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            subtitle: const Text("Tap to view portion", style: TextStyle(fontSize: 12, color: AppColors.textSubtle)),
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Divider(),
-                    const SizedBox(height: 12),
-                    Text(
-                      portion,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppColors.textPrimary,
-                        height: 1.5,
-                      ),
-                    ),
-                  ],
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => SubjectPortionDetailScreen(
+                  subjectName: subject,
+                  examName: examName,
+                  portionText: portion,
                 ),
               ),
-            ],
+            );
+          },
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                // Premium Left Banner (Blue Gradient)
+                Container(
+                  width: 80,
+                  height: 120,
+                  decoration: const BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      bottomLeft: Radius.circular(24),
+                    ),
+                  ),
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                      ),
+                      child: Text(
+                        subject.isNotEmpty ? subject[0].toUpperCase() : 'B',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                
+                // Content
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          subject,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 18,
+                            color: AppColors.primary,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        
+                        // Exam Name Tag (Pill)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.accent.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            examName.toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: AppColors.accentDark,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 12),
+                        
+                        // Action indicator
+                        const Row(
+                          children: [
+                            Icon(Icons.description_outlined, size: 14, color: AppColors.textSubtle),
+                            SizedBox(width: 4),
+                            Text(
+                              'View Detailed Portion',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSubtle,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                
+                // Icon indicator
+                const Padding(
+                  padding: EdgeInsets.only(right: 20),
+                  child: Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 16,
+                    color: AppColors.border,
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
