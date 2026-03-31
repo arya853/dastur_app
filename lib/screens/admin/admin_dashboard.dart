@@ -5,10 +5,9 @@ import '../../core/app_constants.dart';
 import '../../widgets/dashboard_tile.dart';
 import '../../widgets/shared_widgets.dart';
 import '../../services/auth_service.dart';
-import '../../services/mock_data_service.dart';
-import '../../services/data_seeder_service.dart';
-
 import '../../services/student_service.dart';
+import '../../services/teacher_service.dart';
+import '../../models/student.dart';
 import '../../widgets/app_drawer.dart';
 import '../../widgets/announcement_carousel.dart';
 
@@ -75,17 +74,34 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ]),
                 const SizedBox(height: 16),
                 // Stats row
-                FutureBuilder<List>(
-                  future: StudentService().fetchAllStudents(),
+                FutureBuilder<List<dynamic>>(
+                  future: Future.wait([
+                    StudentService().fetchAllStudents(),
+                    TeacherService().fetchAllTeachers(),
+                  ]),
                   builder: (context, snapshot) {
-                    final studentCount = snapshot.hasData ? snapshot.data!.length.toString() : '...';
+                    String studentCount = '...';
+                    String teacherCount = '...';
+                    String classCount = '...';
+
+                    if (snapshot.hasData) {
+                      final students = snapshot.data![0] as List<Student>;
+                      final teachers = snapshot.data![1] as List<Map<String, dynamic>>;
+                      
+                      studentCount = students.length.toString();
+                      teacherCount = teachers.length.toString();
+                      
+                      // Calculate unique classes (Grade - Division)
+                      final uniqueClasses = students.map((s) => s.fullClass).toSet();
+                      classCount = uniqueClasses.length.toString();
+                    }
                     
                     return Row(children: [
                       _statCard('Students', studentCount, Icons.school, AppColors.accent),
                       const SizedBox(width: 10),
-                      _statCard('Teachers', '${MockDataService.allTeachers.length}', Icons.person, AppColors.roleTeacher),
+                      _statCard('Teachers', teacherCount, Icons.person, AppColors.roleTeacher),
                       const SizedBox(width: 10),
-                      _statCard('Classes', '6', Icons.class_, AppColors.success),
+                      _statCard('Classes', classCount, Icons.class_, AppColors.success),
                     ]);
                   }
                 ),
@@ -127,34 +143,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 DashboardTile(icon: Icons.settings, label: 'Settings', iconColor: AppColors.tileIconColors[11],
                   onTap: () => Navigator.pushNamed(context, '/admin-settings')),
               ],
-            ),
-          ),
-          const SliverToBoxAdapter(child: SizedBox(height: 24)),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Starting database seed...')));
-                  try {
-                    await DataSeederService().seedDatabase();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mock data uploaded to Firebase successfully!')));
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to seed database: \$e')));
-                    }
-                  }
-                },
-                icon: const Icon(Icons.cloud_upload),
-                label: const Text('Seed Firebase Database (Admin Only)'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 32)),
