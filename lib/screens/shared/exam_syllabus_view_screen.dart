@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -250,7 +251,7 @@ class _ExamSyllabusViewScreenState extends State<ExamSyllabusViewScreen> {
                           ),
                           child: Text(
                             examName.toUpperCase(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10,
                               color: AppColors.accentDark,
                               fontWeight: FontWeight.w800,
@@ -265,7 +266,7 @@ class _ExamSyllabusViewScreenState extends State<ExamSyllabusViewScreen> {
                         if (timeStr.isNotEmpty)
                           Row(
                             children: [
-                              const Icon(Icons.schedule_rounded, size: 15, color: AppColors.textSubtle),
+                              Icon(Icons.schedule_rounded, size: 15, color: AppColors.textSubtle),
                               const SizedBox(width: 6),
                               Text(
                                 timeStr,
@@ -278,7 +279,7 @@ class _ExamSyllabusViewScreenState extends State<ExamSyllabusViewScreen> {
                             ],
                           )
                         else
-                          const Row(
+                          Row(
                             children: [
                               Icon(Icons.description_outlined, size: 14, color: AppColors.textSubtle),
                               SizedBox(width: 4),
@@ -298,7 +299,7 @@ class _ExamSyllabusViewScreenState extends State<ExamSyllabusViewScreen> {
                 ),
                 
                 // Icon indicator
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(right: 20),
                   child: Icon(
                     Icons.arrow_forward_ios_rounded,
