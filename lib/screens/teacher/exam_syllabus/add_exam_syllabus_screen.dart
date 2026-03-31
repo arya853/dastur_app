@@ -88,7 +88,7 @@ class _AddExamSyllabusScreenState extends State<AddExamSyllabusScreen> {
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime(2025),
-      lastDate: DateTime(2026),
+      lastDate: DateTime(2030),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(

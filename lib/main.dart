@@ -179,7 +179,6 @@ class DasturParentPortalApp extends StatelessWidget {
           '/fees': (_) => const FeesScreen(),
           '/attendance': (_) => const StudentAttendanceScreen(),
           '/timetable': (_) => const TimetableScreen(),
-          '/exam-timetable': (_) => const ExamTimetableScreen(),
           '/profile': (_) => const ProfileScreen(),
           '/parent-id-card': (_) => const ParentIdCardScreen(),
           '/notifications': (_) => const NotificationScreen(),

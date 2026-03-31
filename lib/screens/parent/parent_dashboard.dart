@@ -264,13 +264,6 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                   onTap: () => Navigator.pushNamed(context, '/timetable'),
                 ),
                 DashboardTile(
-                  icon: Icons.event_note,
-                  label: 'Exam\nTimetable',
-                  iconColor: AppColors.tileIconColors[10],
-                  onTap: () =>
-                      Navigator.pushNamed(context, '/exam-timetable'),
-                ),
-                DashboardTile(
                   icon: Icons.person,
                   label: 'Profile',
                   iconColor: AppColors.tileIconColors[11],

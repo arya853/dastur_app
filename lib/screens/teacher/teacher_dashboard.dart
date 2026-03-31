@@ -103,7 +103,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                   onTap: () => Navigator.pushNamed(context, '/syllabus')),
                 DashboardTile(icon: Icons.quiz, label: 'Create\nQuiz', iconColor: AppColors.tileIconColors[5],
                   onTap: () => Navigator.pushNamed(context, '/teacher-quizzes')),
-                DashboardTile(icon: Icons.upload_file, label: 'Upload\nE-Book', iconColor: AppColors.tileIconColors[4],
+                DashboardTile(icon: Icons.upload_file, label: 'E-Book', iconColor: AppColors.tileIconColors[4],
                   onTap: () => Navigator.pushNamed(context, '/ebooks')),
                 DashboardTile(icon: Icons.description, label: 'Upload\nWorksheets', iconColor: AppColors.tileIconColors[6],
                   onTap: () => Navigator.pushNamed(context, '/practice-papers')),
