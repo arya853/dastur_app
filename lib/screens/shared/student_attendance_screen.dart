@@ -33,7 +33,6 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
 
   late DateTime _selectedMonth;
   final AttendanceService _attendanceService = AttendanceService();
-  DateTime? _lastFetched;
 
   @override
   void initState() {
@@ -74,7 +73,6 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
             return _buildErrorState();
           }
 
-          _lastFetched = DateTime.now();
           final docs = snapshot.data?.docs ?? [];
           
           // Build Attendance Map for O(1) Access: "yyyy-MM-dd" -> status
@@ -131,8 +129,6 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
                     _buildCalendarCard(attendanceMap),
                     const SizedBox(height: 12),
                     _buildOverviewCard(p30, a30, l30),
-                    const SizedBox(height: 12),
-                    _buildLastUpdatedFooter(),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -587,16 +583,6 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
         const SizedBox(width: 4),
         Text(l, style: const TextStyle(fontSize: 10, color: colorGreyText, fontWeight: FontWeight.w500)),
       ],
-    );
-  }
-
-  Widget _buildLastUpdatedFooter() {
-    String timeStr = "just now";
-    if (_lastFetched != null) {
-      timeStr = DateFormat('h:mm a').format(_lastFetched!);
-    }
-    return Center(
-      child: Text("Updated today at $timeStr", style: const TextStyle(fontSize: 10, color: Color(0xFFA0AAB8))),
     );
   }
 
