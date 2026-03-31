@@ -7,6 +7,7 @@ import '../../core/app_constants.dart';
 import '../../widgets/shared_widgets.dart';
 import '../../services/auth_service.dart';
 import '../../services/attendance_service.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 /// Professional Student Attendance Screen
 /// Features a card-based layout, real-time month sync, and 30-day analytics.
@@ -328,10 +329,13 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
 
   // --- COMPONENT 5: OVERVIEW CARD ---
   Widget _buildOverviewCard(int p, int a, int l) {
-    final int total = p + a + l;
-    double pPer = total == 0 ? 0 : p / total;
-    double aPer = total == 0 ? 0 : a / total;
-    double lPer = total == 0 ? 0 : l / total;
+    if (p + a + l == 0) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: _cardDecoration(),
+        child: const Center(child: Text("No analytics data for last 30 days", style: TextStyle(color: colorGreyText, fontSize: 12))),
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -350,14 +354,96 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          _overviewBar("Present", (pPer * 100).round(), colorPresent, pPer),
-          const SizedBox(height: 7),
-          _overviewBar("Absent", (aPer * 100).round(), colorAbsent, aPer),
-          const SizedBox(height: 7),
-          _overviewBar("Leave", (lPer * 100).round(), colorLeave, lPer),
+          // PREMIUM 2.5D PIE CHART
+          SizedBox(
+            height: 140,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Bottom Layer (Depth/Shadow)
+                Transform.translate(
+                  offset: const Offset(0, 4),
+                  child: PieChart(
+                    PieChartData(
+                      sectionsSpace: 2,
+                      centerSpaceRadius: 40,
+                      startDegreeOffset: 270,
+                      sections: _buildPieSections(p, a, l, true),
+                    ),
+                  ),
+                ),
+                // Top Layer (Surface/Gradient)
+                PieChart(
+                  PieChartData(
+                    sectionsSpace: 2,
+                    centerSpaceRadius: 40,
+                    startDegreeOffset: 270,
+                    sections: _buildPieSections(p, a, l, false),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Legend Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _overviewLegend(colorPresent, "Present", p),
+              _overviewLegend(colorAbsent, "Absent", a),
+              _legendItem(colorLeave, "Leave"),
+            ],
+          ),
         ],
       ),
     );
+  }
+
+  Widget _overviewLegend(Color c, String l, int val) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Container(width: 8, height: 8, decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(width: 4),
+            Text(l, style: const TextStyle(fontSize: 10, color: colorGreyText, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  List<PieChartSectionData> _buildPieSections(int p, int a, int l, bool isBottom) {
+    final total = p + a + l;
+    if (total == 0) return [];
+
+    return [
+      _pieSection(p.toDouble(), colorPresent, isBottom),
+      _pieSection(a.toDouble(), colorAbsent, isBottom),
+      _pieSection(l.toDouble(), colorLeave, isBottom),
+    ];
+  }
+
+  PieChartSectionData _pieSection(double val, Color c, bool isBottom) {
+    if (isBottom) {
+      return PieChartSectionData(
+        color: c.withOpacity(0.35),
+        value: val,
+        radius: 20,
+        showTitle: false,
+      );
+    } else {
+      return PieChartSectionData(
+        gradient: LinearGradient(
+          colors: [c, Color.lerp(c, Colors.white, 0.2)!],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        value: val,
+        radius: 20,
+        showTitle: false,
+      );
+    }
   }
 
   // --- HELPERS ---
@@ -500,30 +586,6 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
         Container(width: 8, height: 8, decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(2))),
         const SizedBox(width: 4),
         Text(l, style: const TextStyle(fontSize: 10, color: colorGreyText, fontWeight: FontWeight.w500)),
-      ],
-    );
-  }
-
-  Widget _overviewBar(String label, int per, Color c, double val) {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: const TextStyle(fontSize: 11, color: colorTotal, fontWeight: FontWeight.w600)),
-            Text("$per%", style: TextStyle(fontSize: 11, color: c, fontWeight: FontWeight.w800)),
-          ],
-        ),
-        const SizedBox(height: 4),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: val,
-            minHeight: 7,
-            backgroundColor: const Color(0xFFEAEEF5),
-            valueColor: AlwaysStoppedAnimation<Color>(c),
-          ),
-        ),
       ],
     );
   }
