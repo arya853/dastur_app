@@ -7,6 +7,8 @@ import '../../services/mock_data_service.dart';
 import '../../models/announcement.dart';
 import '../../services/admin_announcement_service.dart';
 
+import '../../services/student_service.dart';
+
 /// Admin Manage Students Screen.
 class AdminStudentsScreen extends StatefulWidget {
   const AdminStudentsScreen({super.key});
@@ -18,52 +20,149 @@ class AdminStudentsScreen extends StatefulWidget {
 class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+  List<dynamic>? _allStudents;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStudents();
+  }
+
+  Future<void> _loadStudents() async {
+    try {
+      final students = await StudentService().fetchAllStudents();
+      if (mounted) {
+        setState(() {
+          _allStudents = students;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final students = MockDataService.allStudents.where((s) => 
-      s.grNo.contains(_searchQuery) || 
-      s.name.toLowerCase().contains(_searchQuery.toLowerCase())
-    ).toList();
+    if (_isLoading) {
+      return const Scaffold(
+        appBar: GradientAppBar(title: 'Manage Students', showBackButton: true),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    // 1. Filter students based on search query
+    final students = (_allStudents ?? []).where((s) {
+      final name = s.name.toLowerCase();
+      final grNo = s.grNo.toLowerCase();
+      final query = _searchQuery.toLowerCase();
+      return name.contains(query) || grNo.contains(query);
+    }).toList();
+
+    // 2. Grouping Logic (only for non-search views)
+    final Map<String, List<dynamic>> groupedStudents = {};
+    if (_searchQuery.isEmpty) {
+      for (var s in (_allStudents ?? [])) {
+        final key = 'Class ${s.fullClass}';
+        if (!groupedStudents.containsKey(key)) {
+          groupedStudents[key] = [];
+        }
+        groupedStudents[key]!.add(s);
+      }
+    }
+
+    // Sort keys alphabetically (Class 5 A, then 5 B, etc)
+    final sortedKeys = groupedStudents.keys.toList()..sort();
 
     return Scaffold(
       appBar: const GradientAppBar(title: 'Manage Students', showBackButton: true),
       backgroundColor: AppColors.background,
-      floatingActionButton: FloatingActionButton(onPressed: () => _showFormDialog(context, 'Add Student'), child: const Icon(Icons.add)),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search by Name or GR Number...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                filled: true,
-                fillColor: AppColors.surface,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showFormDialog(context, 'Add Student'), 
+        backgroundColor: AppColors.primary,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+      body: RefreshIndicator(
+        onRefresh: _loadStudents,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search by Name or GR Number...',
+                  prefixIcon: const Icon(Icons.search, color: AppColors.primary),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  filled: true,
+                  fillColor: AppColors.surface,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+                onChanged: (val) => setState(() => _searchQuery = val),
               ),
-              onChanged: (val) => setState(() => _searchQuery = val),
             ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16), 
-              itemCount: students.length, 
-              itemBuilder: (context, i) {
-                final s = students[i];
-                return _managementCard(
-                  avatar: s.name[0], title: s.name, subtitle: 'GR: ${s.grNo} • Class ${s.fullClass}',
-                  onEdit: () => _showFormDialog(context, 'Edit Student'),
-                  onDelete: () => _confirmDelete(context, s.name, () {
-                    // Mock delete for now as these screens aren't fully refactored
-                    debugPrint('Deleting student ${s.name}');
-                  }),
-                );
-              }
+            Expanded(
+              child: students.isEmpty && _searchQuery.isNotEmpty
+                ? const Center(child: Text('No students found matching your search.'))
+                : _searchQuery.isNotEmpty 
+                  ? ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16), 
+                      itemCount: students.length, 
+                      itemBuilder: (context, i) {
+                        final s = students[i];
+                        return _managementCard(
+                          avatar: s.name[0], title: s.name, subtitle: 'GR: ${s.grNo} • Class ${s.fullClass}',
+                          onEdit: () => _showFormDialog(context, 'Edit Student'),
+                          onDelete: () => _confirmDelete(context, s.name, () {
+                            debugPrint('Deleting student ${s.name}');
+                          }),
+                        );
+                      }
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: sortedKeys.length,
+                      itemBuilder: (context, index) {
+                        final classKey = sortedKeys[index];
+                        final classStudents = groupedStudents[classKey]!;
+                        
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.border.withOpacity(0.5)),
+                          ),
+                          child: Theme(
+                            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                            child: ExpansionTile(
+                              leading: CircleAvatar(
+                                radius: 18,
+                                backgroundColor: AppColors.primary.withOpacity(0.12),
+                                child: const Icon(Icons.groups, size: 20, color: AppColors.primary),
+                              ),
+                              title: Text(classKey, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary)),
+                              subtitle: Text('${classStudents.length} Students', style: const TextStyle(fontSize: 12, color: AppColors.textSubtle)),
+                              childrenPadding: const EdgeInsets.all(12),
+                              children: classStudents.map((s) => _managementCard(
+                                avatar: s.name[0], title: s.name, subtitle: 'GR: ${s.grNo}',
+                                onEdit: () => _showFormDialog(context, 'Edit Student'),
+                                onDelete: () => _confirmDelete(context, s.name, () {
+                                  debugPrint('Deleting student ${s.name}');
+                                }),
+                              )).toList(),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -123,26 +222,7 @@ class AdminTeachersScreen extends StatelessWidget {
   }
 }
 
-/// Admin Manage Parents Screen.
-class AdminParentsScreen extends StatelessWidget {
-  const AdminParentsScreen({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const GradientAppBar(title: 'Manage Parents', showBackButton: true),
-      backgroundColor: AppColors.background,
-      floatingActionButton: FloatingActionButton(onPressed: () => _showFormDialog(context, 'Add Parent'), child: const Icon(Icons.add)),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
-        _managementCard(
-          avatar: MockDataService.demoParent.name[0], title: MockDataService.demoParent.name,
-          subtitle: 'Child: ${MockDataService.demoStudent.name}',
-          onEdit: () => _showFormDialog(context, 'Edit Parent'), 
-          onDelete: () => _confirmDelete(context, MockDataService.demoParent.name, () {}),
-        ),
-      ]),
-    );
-  }
-}
+/// Admin Manage Parents Screen (DELETED as per previous request)
 
 /// Admin Announcements Screen – school-wide CRUD.
 class AdminAnnouncementsScreen extends StatelessWidget {

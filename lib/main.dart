@@ -195,7 +195,6 @@ class DasturParentPortalApp extends StatelessWidget {
           // Admin-specific screens
           '/admin-students': (_) => const AdminStudentsScreen(),
           '/admin-teachers': (_) => const AdminTeachersScreen(),
-          '/admin-parents': (_) => const AdminParentsScreen(),
           '/admin-announcements': (_) => const AdminAnnouncementsScreen(),
           '/admin-create-announcement': (_) => const AdminCreateAnnouncementScreen(),
           '/admin-calendar': (_) => const AdminCalendarScreen(),

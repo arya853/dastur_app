@@ -8,10 +8,12 @@ import '../../services/auth_service.dart';
 import '../../services/mock_data_service.dart';
 import '../../services/data_seeder_service.dart';
 
+import '../../services/student_service.dart';
 import '../../widgets/app_drawer.dart';
 import '../../widgets/announcement_carousel.dart';
 
 /// Admin Dashboard Screen
+// ...
 ///
 /// School-wide statistics, quick management actions,
 /// and overview of key metrics.
@@ -73,13 +75,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ]),
                 const SizedBox(height: 16),
                 // Stats row
-                Row(children: [
-                  _statCard('Students', '${MockDataService.allStudents.length}', Icons.school, AppColors.accent),
-                  const SizedBox(width: 10),
-                  _statCard('Teachers', '${MockDataService.allTeachers.length}', Icons.person, AppColors.roleTeacher),
-                  const SizedBox(width: 10),
-                  _statCard('Classes', '6', Icons.class_, AppColors.success),
-                ]),
+                FutureBuilder<List>(
+                  future: StudentService().fetchAllStudents(),
+                  builder: (context, snapshot) {
+                    final studentCount = snapshot.hasData ? snapshot.data!.length.toString() : '...';
+                    
+                    return Row(children: [
+                      _statCard('Students', studentCount, Icons.school, AppColors.accent),
+                      const SizedBox(width: 10),
+                      _statCard('Teachers', '${MockDataService.allTeachers.length}', Icons.person, AppColors.roleTeacher),
+                      const SizedBox(width: 10),
+                      _statCard('Classes', '6', Icons.class_, AppColors.success),
+                    ]);
+                  }
+                ),
               ]),
             )),
           )),
@@ -101,8 +110,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   onTap: () => Navigator.pushNamed(context, '/admin-students')),
                 DashboardTile(icon: Icons.person, label: 'Manage\nTeachers', iconColor: AppColors.tileIconColors[5],
                   onTap: () => Navigator.pushNamed(context, '/admin-teachers')),
-                DashboardTile(icon: Icons.family_restroom, label: 'Manage\nParents', iconColor: AppColors.tileIconColors[3],
-                  onTap: () => Navigator.pushNamed(context, '/admin-parents')),
                 DashboardTile(icon: Icons.campaign, label: 'Announce-\nments', iconColor: AppColors.tileIconColors[1],
                   onTap: () => Navigator.pushNamed(context, '/admin-announcements')),
                 DashboardTile(icon: Icons.calendar_month, label: 'Calendar\nEvents', iconColor: AppColors.tileIconColors[2],
